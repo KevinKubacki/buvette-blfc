@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<!-- BUVETTE BLFC · index.html · version du 29/09/2026
+     1) GitHub : fichier « index.html » du dépôt buvette-blfc (l'appli installable).
+     2) Apps Script : même contenu dans le fichier « Index » (accès de secours via /exec?cle=CODE).
+     Contexte et fiche de référence : CLAUDE.md (zip buvette-blfc-complet) -->
+<html lang="fr">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Buvette BLFC</title>
+<meta name="theme-color" content="#012C94">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --wall:#E8EDF6; --card:#FFFFFF; --ink:#0B1A3F; --muted:#56648A; --rule:#D0D8E8; --soft:#F3F6FC;
+  --blue:#012C94; --blue-d:#001B5E; --red:#B81518; --ok:#1F8A4C; --okbg:#DDF2E5; --redbg:#FBE4E5;
+  --cond:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--wall);color:var(--ink);font:16px/1.4 Barlow,"Segoe UI",Roboto,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+#app{max-width:640px;margin:0 auto;padding:0 14px calc(40px + env(safe-area-inset-bottom,0px))}
+#status{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);right:10px;z-index:20;font-size:.74rem;font-weight:600;padding:4px 9px;border-radius:99px;background:rgba(0,27,94,.85);color:#fff;border:0}
+#status.err{background:var(--red)}
+
+/* barre du haut des écrans */
+.top{position:sticky;top:0;z-index:10;margin:0 -14px 14px;background:var(--blue);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;display:flex;align-items:center;gap:8px;border-bottom:4px solid var(--red)}
+.top .back{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:10px;padding:8px 12px;font-weight:700}
+.top h1{margin:0;font:800 1.5rem/1 var(--cond);flex:1}
+.top h1 small{display:block;font:500 .82rem/1.3 Barlow,sans-serif;opacity:.85}
+
+/* accueil */
+.hero{margin:0 -14px;padding:calc(env(safe-area-inset-top,0px) + 18px) 16px 16px;background:var(--blue);color:#fff;border-bottom:5px solid var(--red);position:relative;overflow:hidden}
+.hero:before{content:"";position:absolute;right:-70px;top:-70px;width:200px;height:200px;border:3px solid rgba(255,255,255,.12);border-radius:50%}
+.hero .id{display:flex;align-items:center;gap:14px}
+.hero img{width:84px;height:84px;flex:none;border-radius:50%;box-shadow:0 0 0 3px #fff,0 0 0 6px var(--red)}
+.hero .club{font:800 1.5rem/1 var(--cond)}
+.hero .sub{font-size:.88rem;color:#C3CFF0;margin-top:3px}
+.hero .cells{display:grid;grid-template-columns:repeat(3,1fr);margin-top:16px;border-top:1px solid rgba(255,255,255,.18);padding-top:10px}
+.hero .cells div{font-size:.78rem;color:#C3CFF0}
+.hero .cells b{display:block;font:800 1.45rem/1.1 var(--cond);color:#fff;font-variant-numeric:tabular-nums}
+
+h2{font:800 1.3rem/1.1 var(--cond);margin:20px 2px 10px}
+.group{font:700 .98rem/1 var(--cond);color:var(--muted);margin:12px 2px 7px}
+.muted{color:var(--muted);font-size:.9rem}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;border:1px solid var(--rule)}
+
+.shelf{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.tile{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:8px 8px 7px;min-width:0}
+.tile b{display:block;font:800 1.8rem/1 var(--cond);font-variant-numeric:tabular-nums}
+.tile span{display:block;font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile{position:relative}
+.h2row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.h2row h2{margin-right:auto}
+.wa{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:99px;background:#25D366;color:#fff;font-weight:700;font-size:.85rem;padding:8px 13px;margin-top:10px;flex:none}
+.wa svg{width:17px;height:17px}
+.shot img{width:100%;border-radius:12px;border:1px solid var(--rule);display:block;-webkit-touch-callout:default}
+.tile .ic{position:absolute;top:6px;right:6px;font-style:normal;font-size:1.25rem;line-height:1}
+.mbtn b .mi{display:block;font-style:normal;font-size:1.7rem;line-height:1;margin-bottom:8px}
+.mbtn.main b{display:flex;align-items:center;gap:12px}
+.mbtn.main b .mi{font-size:2.3rem;margin:0}
+.tile.low{border-color:var(--red);background:#FFF4F4}
+.tile.low b{color:var(--red)}
+.alert{display:flex;gap:8px;align-items:center;background:#FFF4F4;border:1px solid #F0C4C6;color:var(--red);border-radius:12px;padding:9px 12px;font-weight:600;font-size:.92rem;margin-top:10px}
+
+.menu{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mbtn{border:0;border-radius:16px;background:var(--card);border:1px solid var(--rule);padding:16px 14px;text-align:left;min-height:96px;display:flex;flex-direction:column;justify-content:space-between}
+.mbtn b{font:800 1.35rem/1 var(--cond);color:var(--blue)}
+.mbtn span{font-size:.84rem;color:var(--muted);margin-top:6px}
+.mbtn.main{grid-column:1/-1;background:var(--red);border-color:var(--red);min-height:112px}
+.mbtn.main b{color:#fff;font-size:1.9rem}
+.mbtn.main span{color:#FFD9DA;font-size:.95rem}
+
+/* commun */
+label.f{display:block;margin-bottom:10px;font-size:.86rem;color:var(--muted);font-weight:600}
+label.f input,label.f select,label.f textarea{display:block;width:100%;margin-top:4px;padding:11px 12px;border:1px solid var(--rule);border-radius:10px;background:var(--soft);font-size:1rem;color:var(--ink);font-weight:500}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{border:0;border-radius:11px;padding:13px 16px;font-weight:700;background:var(--blue);color:#fff}
+.btn.red{background:var(--red)}
+.btn.ghost{background:#E2E8F5;color:var(--blue-d)}
+.btn.danger{background:var(--redbg);color:var(--red)}
+.btn.small{padding:7px 11px;font-size:.85rem;border-radius:8px}
+.btn.wide{width:100%}
+.btn.arm{background:var(--red)!important;color:#fff!important}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.line{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #EEF1F7}
+.line:last-child{border-bottom:0}
+.grow{flex:1;min-width:0}
+.name{font-weight:600}
+.num{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+.neg{color:var(--red)}.pos{color:var(--ok)}
+.step{display:flex;align-items:center;border:1px solid var(--rule);border-radius:10px;overflow:hidden;flex:none}
+.step button{width:40px;height:40px;border:0;background:#EDF1FA;font-size:1.3rem;font-weight:700;color:var(--blue-d)}
+.step input{width:46px;height:40px;border:0;text-align:center;font:700 1.15rem var(--cond);background:#fff;padding:0}
+.step.has input{color:var(--blue)}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:#E9EEF7;border-radius:11px;padding:3px;margin-bottom:12px}
+.seg button{border:0;background:none;padding:10px;border-radius:9px;font-weight:700;color:var(--muted)}
+.seg button.on{background:#fff;color:var(--blue-d);box-shadow:0 1px 2px rgba(11,26,63,.15)}
+.tgl{border:0;border-radius:8px;padding:7px 10px;font-size:.82rem;font-weight:700;background:#E4E8F0;color:var(--muted);flex:none}
+.tgl.on{background:var(--okbg);color:var(--ok)}
+.line.off .grow{opacity:.45}
+.chip{display:inline-block;font-size:.8rem;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--okbg);color:var(--ok);margin:2px 4px 0 0}
+.chip.x{border:0}
+.pill{display:inline-block;font-size:.74rem;font-weight:700;padding:2px 8px;border-radius:99px;background:#E2E8F5;color:var(--blue-d)}
+.pill.low{background:var(--redbg);color:var(--red)}
+.empty{padding:16px;text-align:center;color:var(--muted);font-size:.95rem}
+details>summary{cursor:pointer;font:700 1rem var(--cond);color:var(--muted);padding:8px 2px}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th{text-align:right;font-weight:600;color:var(--muted);font-size:.76rem;padding:4px 4px 6px}
+th:first-child,td:first-child{text-align:left}
+td{padding:9px 4px;border-top:1px solid #EEF1F7;text-align:right;font-variant-numeric:tabular-nums}
+tr.click{cursor:pointer}
+.scroll{overflow-x:auto}
+.total{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--soft);border-radius:11px;padding:10px 12px;margin:10px 0}
+.total b{font:800 1.4rem var(--cond)}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:10px 12px}
+.stat b{display:block;font:800 1.5rem/1.1 var(--cond);font-variant-numeric:tabular-nums}
+.stat span{font-size:.8rem;color:var(--muted)}
+
+/* apéro */
+.when{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.when input{border:1px solid var(--rule);border-radius:10px;padding:8px 10px;background:#fff;font-weight:600}
+.count{font:800 1.2rem var(--cond);color:var(--blue)}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pbtn{border:1.5px solid var(--rule);background:#fff;border-radius:12px;padding:13px 12px;text-align:left;font-weight:700;font-size:.98rem;display:flex;align-items:center;gap:8px;min-height:52px}
+.pbtn i{font-style:normal;width:22px;height:22px;border-radius:50%;border:2px solid var(--rule);flex:none;display:grid;place-items:center;font-size:.8rem}
+.pbtn.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.pbtn.on i{background:#fff;border-color:#fff;color:var(--blue)}
+
+/* feuille modale */
+#sheet{position:fixed;inset:0;z-index:30;display:none}
+#sheet.open{display:block}
+#sheet .bg{position:absolute;inset:0;background:rgba(0,20,70,.45)}
+#sheet .panel{position:absolute;left:0;right:0;bottom:0;max-width:640px;margin:0 auto;background:#fff;border-radius:18px 18px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom,0px));max-height:88vh;overflow:auto}
+#sheet h3{margin:0 0 12px;font:800 1.4rem var(--cond)}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.quick button{border:1.5px solid var(--rule);background:#fff;border-radius:11px;padding:14px 0;font:800 1.3rem var(--cond);color:var(--blue)}
+.quick button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.plist button{width:100%;display:flex;justify-content:space-between;border:1.5px solid var(--rule);background:#fff;border-radius:11px;padding:11px 12px;margin-bottom:6px;font-weight:600}
+.plist button.on{border-color:var(--blue);background:#EEF2FC}
+
+.drop{display:block;border:2px dashed #A9B7DA;border-radius:14px;padding:18px;text-align:center;background:#F6F8FD;color:var(--blue-d);font-weight:700}
+.drop small{display:block;font-weight:500;color:var(--muted);margin-top:4px}
+.drop input{display:none}
+.unk{background:#FFFBEA;border:1px solid #F0E2A6;border-radius:12px;padding:10px 12px;margin-top:10px}
+.unk select{padding:7px;border-radius:8px;border:1px solid var(--rule);max-width:150px}
+textarea.json{width:100%;min-height:110px;font:12px/1.3 Consolas,monospace;border:1px solid var(--rule);border-radius:10px;padding:8px}
+#toast{position:fixed;left:50%;bottom:calc(48px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 16px;border-radius:11px;font-weight:600;opacity:0;transition:.2s;pointer-events:none;z-index:40;max-width:90vw}
+#toast.show{opacity:1;transform:translateX(-50%)}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+@media (max-width:360px){.shelf{grid-template-columns:repeat(3,1fr)}.pgrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<button id="status" data-a="retry">Chargement…</button>
+<div id="app"><div class="empty" style="padding-top:40vh">Chargement…</div></div>
+<div id="sheet"><div class="bg" data-a="closeSheet"></div><div class="panel" id="panel"></div></div>
+<div id="toast"></div>
+
+<script>
+/* ================= Utilitaires ================= */
+const LOGO = 'data:image/webp;base64,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';
+const GAS = typeof google !== 'undefined' && google.script && google.script.run;
+const CFG_KEY = 'buvette-blfc-api';
+function apiCfg() { try { return JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); } catch (e) { return null; } }
+// Lien de configuration : …/buvette-blfc/?url=ADRESSE_EXEC&code=CODE_SECRET (enregistré sur l'appareil puis retiré de l'adresse)
+(function () {
+  try {
+    const q = new URLSearchParams(location.search), u = q.get('url'), c = q.get('code');
+    if (!GAS && u && c && /^https:\/\/script\.google\.com\/.+\/exec\b/.test(u)) { localStorage.setItem(CFG_KEY, JSON.stringify({ url: u, token: c })); history.replaceState(null, '', location.pathname); }
+  } catch (e) {}
+})();
+let MODE = GAS ? 'gas' : (apiCfg() ? 'api' : 'local');
+const HOSTED = /^https?:/.test(location.protocol) && !GAS;
+async function api(action, payload) {
+  const c = apiCfg(); if (!c) throw new Error('Appli non connectée');
+  const r = await fetch(c.url, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ action, token: c.token }, payload || {})) });
+  let j; try { j = await r.json(); } catch (e) { throw new Error('Réponse illisible du Google Sheet (vérifie le déploiement « Tout le monde »)'); }
+  if (!j.ok) throw new Error(j.error || 'Erreur du Google Sheet');
+  return j.data;
+}
+const backend = {
+  load: () => MODE === 'gas' ? gas('loadState') : MODE === 'api' ? api('load') : Promise.resolve(localStorage.getItem(KEY)),
+  save: (payload) => MODE === 'gas' ? gas('saveState', payload, report()) : MODE === 'api' ? api('save', { json: payload, report: report() }) : (localStorage.setItem(KEY, payload), Promise.resolve(S.rev)),
+  ocr: (b64, mime) => MODE === 'gas' ? gas('ocrImage', b64, mime) : api('ocr', { b64, mime })
+};
+const online = () => MODE !== 'local';
+const KEY = 'buvette-blfc-v3';
+const TYPES = ['Boissons', 'Apéro', 'Repas', 'Autres'];
+const uid = () => Math.random().toString(36).slice(2, 9);
+const pad = n => String(n).padStart(2, '0');
+function nowDT() { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+const JOURS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+function fdt(dt) { if (!dt) return ''; const d = new Date(dt); return JOURS[d.getDay()] + ' ' + pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' à ' + pad(d.getHours()) + 'h' + pad(d.getMinutes()); }
+function sessionDate() { const d = new Date(); if (d.getHours() < 6) d.setDate(d.getDate() - 1); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function fday(dt) { if (!dt) return ''; const d = new Date(dt); return JOURS[d.getDay()] + ' ' + pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear(); }
+function fd(dt) { if (!dt) return ''; const d = new Date(dt); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear(); }
+const r2 = n => Math.round((n || 0) * 100) / 100;
+const eur = n => r2(n).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+const eur0 = n => (Math.abs(n - Math.round(n)) < 0.005 ? Math.round(n) + ' €' : eur(n));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = v => { const n = parseFloat(String(v ?? '').replace(/\s/g, '').replace(',', '.')); return isNaN(n) ? 0 : n; };
+const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
+const gas = (fn, ...args) => new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args));
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2400); }
+function loadScript(src) { return new Promise((res, rej) => { if (document.querySelector('script[src="' + src + '"]')) return res(); const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('Script introuvable')); document.head.appendChild(s); }); }
+
+/* ================= Données de départ (reprises du Google Sheet) ================= */
+function seed() {
+  // [type, nom, prix moyen, seuil alerte, valeur si apporté, unités par lot, mots-clés ticket]
+  const P = [
+    ['Boissons', 'bières', 0.72, 12, 0, 1, 'HEINEKEN,BIERE,KRONENBOURG,1664,LEFFE,DESPERADOS'],
+    ['Boissons', 'bières 0%', 0.81, 0, 0, 1, '1664 0.0,1664 0,0,HEINEKEN 0.0,HEINEKEN 0,0,SANS ALCOOL,0.0%'],
+    ['Boissons', 'coca', 2.15, 2, 0, 1, 'COCA'],
+    ['Boissons', 'oasis', 2.43, 1, 0, 1, 'OASIS'],
+    ['Boissons', 'whisky', 21.50, 0, 15, 1, 'WHISK,JACK DANIEL,CLAN CAMPBELL,WILLIAM PEEL'],
+    ['Boissons', 'captain', 19.81, 0, 15, 1, 'CAPTAIN MORGAN,CAPTAIN'],
+    ['Boissons', 'ricard', 20.05, 0, 15, 1, 'RICARD,PASTIS'],
+    ['Apéro', 'chips', 0.99, 2, 0, 1, 'CHIPS,CRAQUANTES'],
+    ['Apéro', 'snacks', 1.50, 0, 0, 1, 'SNACK,COFFRET APERO,BISCUITS APERO'],
+    ['Repas', 'pizza', 2.68, 2, 0, 1, 'PIZZA'],
+    ['Repas', 'fougasses', 4.50, 0, 5, 1, 'FOUGASSE'],
+    ['Repas', 'baguettes', 1.29, 0, 0, 1, 'BAGUETTE'],
+    ['Repas', 'beurre', 2.40, 0, 0, 1, 'BEURRE'],
+    ['Repas', 'fromage', 7.61, 0, 0, 1, 'BRIE,FROMAGE,CAMEMBERT,COMTE,EMMENTAL'],
+    ['Repas', 'charcuterie', 3.50, 0, 0, 1, 'TERRINE,RILLETTE,SAUCISSON,PATE,CHARCUTERIE'],
+    ['Repas', 'pain de mie', 1.39, 0, 0, 1, 'PAIN DE MIE,PAIN MIE'],
+    ['Autres', 'désodorisant', 0, 0, 0, 1, 'DESODO'],
+    ['Autres', 'assiettes carton', 0, 0, 0, 1, 'ASSIETTE'],
+    ['Autres', 'lingettes', 0, 0, 0, 1, 'LINGETTE'],
+    ['Autres', 'papier cuisson', 1.10, 0, 0, 1, 'PAPIER CUISSON,CUISSON'],
+    ['Autres', 'éponge', 0.70, 0, 0, 1, 'EPONGE'],
+    ['Autres', 'liquide vaisselle', 0.50, 0, 0, 1, 'VAISSELLE']
+  ];
+  const products = P.map(([type, name, prix, seuil, apport, lot, alias]) => ({ id: uid(), type, name, prix, seuil, apport, lot, alias: alias.split(','), actif: true }));
+  const pid = n => products.find(p => p.name === n).id;
+  const counts = o => { const c = {}; Object.entries(o).forEach(([n, q]) => c[pid(n)] = q); return c; };
+  const names = ['Alexis Vaury', 'Benoît Venisse', 'Geoffrey Schlotter', 'Jérémy Phillipot', 'Jerome Lebert', 'Jonathan Sertori', 'Kévin Kubacki',
+    'Mathieu Bertault', 'Meddy Bellazaar', 'Mickaël Hernanz', 'Nicolas Beaudin', 'Pedro', 'Romain Dupre', 'Sebastien 2', 'Sébastien May',
+    'Steven Phillipot', 'Tony Brousse', 'Valentin Guyon', 'Théo', 'Rémi', 'Nicolas Barbe'];
+  const players = names.map(name => ({ id: uid(), name, actif: true, licence: false, paiement: false, chaussette: false }));
+  const plid = n => players.find(p => p.name === n).id;
+  // Fin de saison 2025-26 : stock restant avant les premières courses de 2026-27
+  const debut = { 'whisky': 1, 'coca': 2, 'bières': 5, 'chips': 3, 'pizza': 2, 'désodorisant': 1, 'lingettes': 1, 'papier cuisson': 1, 'éponge': 4, 'liquide vaisselle': 1 };
+  // Premières courses 2026-27 : ticket Super U Beaune-la-Rolande du 11/09/2026
+  const ticket = { 'bières': 48, 'coca': 6, 'oasis': 1, 'chips': 4, 'pizza': 7 };
+  // Inventaire compté après l'apéro du 11/09
+  const apres = { ...debut, 'bières': 43, 'coca': 7, 'oasis': 1, 'chips': 6, 'pizza': 7, 'désodorisant': 0 };
+  return {
+    v: 2, rev: 0, season: '2026-27', resteN1: 64,
+    products, players,
+    inventaires: [
+      { id: uid(), dt: '2026-09-11T00:00', counts: counts(debut), note: 'Reste de la saison 2025-26' },
+      { id: uid(), dt: '2026-09-11T23:59', counts: counts(apres) }
+    ],
+    aperos: [{ id: uid(), dt: '2026-09-11T20:00', participants: ['Benoît Venisse', 'Geoffrey Schlotter', 'Jonathan Sertori', 'Kévin Kubacki', 'Mathieu Bertault', 'Mickaël Hernanz'].map(plid) }],
+    achats: [{ id: uid(), dt: '2026-09-11T12:00', lignes: Object.entries(ticket).map(([n, q]) => ({ pid: pid(n), qty: q })), total: 62.14, caisse: true, comment: 'Super U Beaune-la-Rolande', source: 'ticket' }],
+    versements: [], archives: []
+  };
+}
+function migrate(s) {
+  if (s.v !== 2) return null;
+  ['products', 'players', 'inventaires', 'achats', 'versements', 'aperos', 'archives'].forEach(k => s[k] = s[k] || []);
+  return s;
+}
+
+/* ================= Calculs ================= */
+let S = null;
+const prod = id => S.products.find(p => p.id === id);
+const player = id => S.players.find(p => p.id === id);
+const byDt = (a, b) => a.dt.localeCompare(b.dt);
+const byType = (all) => TYPES.map(t => [t, S.products.filter(p => p.type === t && (all || p.actif))]).filter(([, l]) => l.length);
+const invs = () => [...S.inventaires].sort(byDt);
+const lastInv = () => { const l = invs(); return l[l.length - 1] || { dt: '0000', counts: {} }; };
+// entrées en stock (achats + apports en nature) entre deux instants
+function entrees(t0, t1) {
+  const e = {};
+  S.achats.forEach(a => { if (a.dt > t0 && a.dt <= t1) a.lignes.forEach(l => e[l.pid] = (e[l.pid] || 0) + l.qty); });
+  S.versements.forEach(v => { if (v.nature && v.dt > t0 && v.dt <= t1) e[v.pid] = (e[v.pid] || 0) + v.qty; });
+  return e;
+}
+function stockOf(pid) { const li = lastInv(); return (li.counts[pid] || 0) + (entrees(li.dt, '9999')[pid] || 0); }
+// consommation mesurée entre chaque inventaire
+function periodes() {
+  const l = invs(), out = [];
+  for (let i = 1; i < l.length; i++) {
+    const a = l[i - 1], b = l[i], e = entrees(a.dt, b.dt), conso = {};
+    let valeur = 0;
+    S.products.forEach(p => { const q = (a.counts[p.id] || 0) + (e[p.id] || 0) - (b.counts[p.id] || 0); if (q) { conso[p.id] = q; valeur += q * (p.prix || 0); } });
+    const aps = S.aperos.filter(x => x.dt > a.dt && x.dt <= b.dt);
+    out.push({ from: a, to: b, conso, valeur, nbAperos: aps.length, presences: aps.reduce((s, x) => s + x.participants.length, 0) });
+  }
+  return out;
+}
+function stats() {
+  const per = periodes();
+  const valeur = per.reduce((s, p) => s + p.valeur, 0);
+  const nbMes = per.reduce((s, p) => s + p.nbAperos, 0);
+  const presMes = per.reduce((s, p) => s + p.presences, 0);
+  const conso = {}; per.forEach(p => Object.entries(p.conso).forEach(([k, q]) => conso[k] = (conso[k] || 0) + q));
+  return { valeur, nbMes, presMes, conso, nb: S.aperos.length, parApero: nbMes ? valeur / nbMes : 0, parGars: presMes ? valeur / presMes : 0 };
+}
+function money() {
+  const verse = S.versements.filter(v => !v.nature).reduce((s, v) => s + v.montant, 0);
+  const nature = S.versements.filter(v => v.nature).reduce((s, v) => s + v.montant, 0);
+  const depense = S.achats.filter(a => a.caisse).reduce((s, a) => s + a.total, 0);
+  const courses = S.achats.reduce((s, a) => s + a.total, 0);
+  return { verse, nature, depense, courses, caisse: S.resteN1 + verse - depense };
+}
+function bilan() {
+  const st = stats();
+  return S.players.map(p => {
+    const nb = S.aperos.filter(a => a.participants.includes(p.id)).length;
+    const donne = S.versements.filter(v => v.playerId === p.id).reduce((s, v) => s + v.montant, 0);
+    return { p, nb, donne, ratio: nb ? donne / nb : null, ok: nb ? donne / nb >= st.parGars - 0.005 : null };
+  });
+}
+function nextSeason(n) { const m = String(n).match(/^(\d{4})\s*-\s*(\d{2,4})$/); return m ? (+m[1] + 1) + '-' + String((+m[2] + 1) % 100).padStart(2, '0') : n; }
+function prevSeason(n) { const m = String(n).match(/^(\d{4})\s*-\s*(\d{2,4})$/); return m ? (+m[1] - 1) + '-' + String((+m[2] + 99) % 100).padStart(2, '0') : ''; }
+const archSorted = () => [...S.archives].sort((a, b) => b.season.localeCompare(a.season));
+function snapshotSeason() {
+  const st = stats(), m = money();
+  return { id: uid(), season: S.season, date: sessionDate(), source: 'auto', nbAperos: S.aperos.length, parApero: r2(st.parApero), parGars: r2(st.parGars),
+    valeur: r2(st.valeur), caisseFin: r2(m.caisse), donneTotal: r2(m.verse + m.nature), courses: r2(m.courses),
+    players: bilan().filter(x => x.nb || x.donne).map(x => ({ name: x.p.name, nb: x.nb, donne: r2(x.donne) })),
+    conso: S.products.filter(p => st.conso[p.id]).map(p => ({ name: p.name, qty: st.conso[p.id], valeur: r2(st.conso[p.id] * (p.prix || 0)) })) };
+}
+function parsePaste(txt) {
+  const out = [];
+  String(txt || '').split(/\r?\n/).forEach(l => {
+    const c = l.split(/\t|;/).map(x => x.trim()).filter(x => x !== '');
+    if (c.length < 2) return;
+    const name = c[0]; if (!/[a-zA-ZÀ-ÿ]/.test(name) || /^(nom|joueur|total)/i.test(name)) return;
+    const n = c.slice(1).map(x => x.replace(/[€\s]/g, '')).filter(x => /^-?\d+([.,]\d+)?$/.test(x)).map(num);
+    if (!n.length) return;
+    out.push({ name, nb: n.length > 1 ? Math.round(n[0]) : '', donne: n.length > 1 ? n[1] : n[0] });
+  });
+  return out;
+}
+const ICONES = { 'BIERES': '🍺', 'BIERES 0%': '🍺', 'COCA': '🥤', 'OASIS': '🧃', 'WHISKY': '🥃', 'CAPTAIN': '🏴‍☠️', 'RICARD': '🥃', 'CHIPS': '🥔', 'SNACKS': '🥨', 'PIZZA': '🍕', 'FOUGASSES': '🥖', 'BAGUETTES': '🥖', 'BEURRE': '🧈', 'FROMAGE': '🧀', 'CHARCUTERIE': '🥓', 'PAIN DE MIE': '🍞', 'DESODORISANT': '🌸', 'ASSIETTES CARTON': '🍽️', 'LINGETTES': '🧻', 'PAPIER CUISSON': '📜', 'EPONGE': '🧽', 'LIQUIDE VAISSELLE': '🧴' };
+const ICONE_TYPE = { 'Boissons': '🥤', 'Apéro': '🥨', 'Repas': '🍽️', 'Autres': '🧼' };
+const iconsOn = () => !(S.ui && S.ui.icons === false);
+const icone = p => p.icon || ICONES[norm(p.name)] || ICONE_TYPE[p.type] || '📦';
+const ic = (e, cls = 'ic') => iconsOn() ? `<i class="${cls}" aria-hidden="true">${e}</i>` : '';
+function freq() { const f = {}; S.aperos.forEach(a => a.participants.forEach(id => f[id] = (f[id] || 0) + 1)); return f; }
+const vLabel = v => v.nature ? v.qty + ' ' + esc((prod(v.pid) || {}).name || '?') : eur0(v.montant);
+
+/* ================= Sauvegarde ================= */
+let saveT = null, saving = false, dirty = false, errKind = null;
+function setStatus(k, msg) {
+  const b = document.getElementById('status');
+  b.className = k === 'err' ? 'err' : '';
+  b.textContent = k === 'ok' ? (online() ? 'Enregistré ✓' : 'Enregistré (local)') : k === 'pending' ? 'Enregistrement…' : (msg || 'Erreur, toucher pour réessayer');
+}
+function commit(msg) { render(); if (msg) toast(msg); dirty = true; setStatus('pending'); clearTimeout(saveT); saveT = setTimeout(save, 600); }
+async function save() {
+  if (saving) { saveT = setTimeout(save, 400); return; }
+  saving = true; dirty = false; errKind = null;
+  try {
+    const payload = JSON.stringify(S);
+    S.rev = await backend.save(payload);
+    if (MODE === 'api') try { localStorage.setItem(KEY + '-cache', JSON.stringify(S)); } catch (e) {}
+    setStatus(dirty ? 'pending' : 'ok');
+  } catch (e) {
+    const conflit = /CONFLIT/.test(String(e && e.message || e));
+    errKind = conflit ? 'conflit' : 'err';
+    setStatus('err', conflit ? 'Modifié ailleurs, toucher pour recharger' : null);
+  }
+  saving = false;
+}
+async function load() {
+  document.getElementById('status').textContent = 'Chargement…';
+  let raw = null;
+  if (MODE === 'local' && HOSTED && !apiCfg() && !sessionStorage.getItem('buvette-test')) { screen = 'setup'; S = seed(); render(); setStatus('ok'); document.getElementById('status').textContent = 'Non connecté'; return; }
+  try { raw = await backend.load(); if (MODE === 'api' && raw) try { localStorage.setItem(KEY + '-cache', raw); } catch (e) {} }
+  catch (e) {
+    const cache = MODE === 'api' && localStorage.getItem(KEY + '-cache');
+    if (cache) { S = migrate(JSON.parse(cache)); if (S) { render(); errKind = 'load'; setStatus('err', 'Hors ligne, toucher pour réessayer'); return; } }
+    setStatus('err', 'Chargement impossible, toucher pour réessayer'); errKind = 'load'; toast(String(e && e.message || e)); return;
+  }
+  S = raw ? migrate(JSON.parse(raw)) : null;
+  const fresh = !S; if (fresh) S = seed();
+  render();
+  if (fresh) commit(); else setStatus('ok');
+}
+function report() {
+  const R = {}, st = stats();
+  R['Stock'] = [['Type', 'Produit', 'Stock', 'Seuil alerte', 'Prix moyen', 'Consommé saison']].concat(S.products.map(p => [p.type, p.name, stockOf(p.id), p.seuil || 0, p.prix || 0, st.conso[p.id] || 0]));
+  R['Courses'] = [['Date', 'Produits', 'Total', 'Payé par la caisse', 'Commentaire']].concat([...S.achats].sort(byDt).map(a => [fd(a.dt), a.lignes.map(l => l.qty + ' ' + (prod(l.pid) || {}).name).join(', '), a.total, a.caisse ? 'oui' : 'non', a.comment || '']));
+  R['Apéros'] = [['Date', 'Nb présents', 'Présents']].concat([...S.aperos].sort(byDt).map(a => [fd(a.dt), a.participants.length, a.participants.map(id => (player(id) || {}).name).join(', ')]));
+  R['Versements'] = [['Date', 'Joueur', 'Montant', 'Type', 'Produit apporté', 'Qté']].concat([...S.versements].sort(byDt).map(v => [fd(v.dt), (player(v.playerId) || {}).name, v.montant, v.nature ? 'apport' : 'argent', v.nature ? (prod(v.pid) || {}).name : '', v.nature ? v.qty : '']));
+  R['Inventaires'] = [['Date'].concat(S.products.map(p => p.name))].concat(invs().map(i => [fd(i.dt)].concat(S.products.map(p => i.counts[p.id] || 0))));
+  R['Bilan joueurs'] = [['Joueur', 'Apéros', 'Donné', 'Ratio (€ par apéro)', 'Coût moyen par gars', 'Licence', 'Paiement', 'Chaussette']].concat(bilan().map(b => [b.p.name, b.nb, r2(b.donne), b.ratio == null ? '' : Math.round(b.ratio), r2(st.parGars), b.p.licence ? 'oui' : 'non', b.p.paiement ? 'oui' : 'non', b.p.chaussette ? 'oui' : 'non']));
+  (S.archives || []).forEach(a => {
+    const name = ('Archive ' + a.season).replace(/[\\\/?*\[\]:]/g, '-').slice(0, 90);
+    R[name] = [['Saison', a.season], ['Apéros', a.nbAperos], ['Coût moyen d’un apéro', a.parApero], ['Coût moyen par gars', a.parGars], ['Caisse en fin de saison', a.caisseFin ?? ''], ['Saisi', a.source === 'manuel' ? 'à la main' : 'clôture automatique'], [''],
+      ['Joueur', 'Apéros', 'Donné', 'Ratio (€ par apéro)']].concat(a.players.map(x => [x.name, x.nb === '' ? '' : x.nb, x.donne, x.nb ? Math.round(x.donne / x.nb) : '']))
+      .concat(a.conso && a.conso.length ? [[''], ['Produit', 'Consommé', 'Valeur']].concat(a.conso.map(c => [c.name, c.qty, c.valeur])) : []);
+  });
+  return R;
+}
+
+/* ================= État de l'interface ================= */
+let screen = 'home', U = { invDate: '', apId: null, sheet: null, draft: null, inv: null, dbTab: 'joueurs', editP: null, editProd: null, newPlayer: '', io: '', scan: '' };
+function setPath(path, val) { const k = path.split('.'); let o = U; while (k.length > 1) o = o[k.shift()]; o[k[0]] = val; }
+function go(s) { screen = s; render(); window.scrollTo(0, 0); }
+function currentApero() {
+  return S.aperos.find(a => a.dt.slice(0, 10) === sessionDate()) || null;
+}
+function topbar(title, sub, back = 'home', backLabel = 'Accueil') { return `<div class="top"><button class="back" data-a="go" data-s="${back}" aria-label="Retour">‹ ${backLabel}</button><h1>${title}${sub ? '<small>' + sub + '</small>' : ''}</h1></div>`; }
+const armBtn = (a, id, label, cls = 'btn small danger') => `<button class="${cls}" data-a="${a}" data-id="${id}" data-arm="1">${label}</button>`;
+function stepper(path, val) { return `<div class="step ${val ? 'has' : ''}"><button data-a="stp" data-p="${path}" data-d="-1" aria-label="Moins">−</button><input inputmode="numeric" data-f="${path}" value="${val || 0}"><button data-a="stp" data-p="${path}" data-d="1" aria-label="Plus">+</button></div>`; }
+
+/* ================= Écrans ================= */
+const V = {};
+
+V.home = () => {
+  const m = money(), st = stats(), cur = currentApero();
+  const low = S.products.filter(p => p.actif && p.seuil > 0 && stockOf(p.id) <= p.seuil);
+  const shelf = S.products.filter(p => p.actif && p.type !== 'Autres' && (stockOf(p.id) > 0 || p.seuil > 0));
+  return `
+  <section class="hero">
+    <div class="id"><img src="${LOGO}" alt="Logo Bellegarde Ladon FC">
+      <div><div class="club">Buvette BLFC</div><div class="sub">Futsal, saison ${esc(S.season)}</div></div></div>
+    <div class="cells">
+      <div><b>${eur(m.caisse)}</b>en caisse</div>
+      <div><b>${st.nbMes ? eur(st.parApero) : '–'}</b>par apéro</div>
+      <div><b>${st.presMes ? eur(st.parGars) : '–'}</b>par gars</div>
+    </div>
+  </section>
+  <div class="h2row"><h2>Niveaux de la buvette</h2><button class="wa" data-a="shareStock">${WA_ICON}WhatsApp</button></div>
+  <div class="shelf">${shelf.map(p => { const q = stockOf(p.id), lo = p.seuil > 0 && q <= p.seuil; return `<div class="tile ${lo ? 'low' : ''}">${ic(icone(p))}<b>${q}</b><span>${esc(p.name)}</span></div>`; }).join('') || '<div class="muted">Stock vide.</div>'}</div>
+  ${low.length ? `<div class="alert">À racheter : ${low.map(p => esc(p.name)).join(', ')}</div>` : ''}
+  <h2>Que veux-tu faire ?</h2>
+  <div class="menu">
+    <button class="mbtn main" data-a="openApero"><b>${ic('🍻', 'mi')}${cur ? 'Reprendre l’apéro' : 'Apéro'}</b><span>${cur ? 'Ce soir, ' + cur.participants.length + ' présents' : 'Qui est là, qui donne quoi'}</span></button>
+    <button class="mbtn" data-a="openCourses"><b>${ic('🛒', 'mi')}Courses</b><span>Scanner un ticket ou saisir un achat</span></button>
+    <button class="mbtn" data-a="openInv"><b>${ic('📋', 'mi')}Inventaire</b><span>Compter ce qui reste</span></button>
+    <button class="mbtn" data-a="go" data-s="bilan"><b>${ic('📊', 'mi')}Bilan</b><span>Ratio par joueur, conso</span></button>
+    <button class="mbtn" data-a="go" data-s="base"><b>${ic('🗂️', 'mi')}Base de données</b><span>Joueurs, produits, saison</span></button>
+  </div>`;
+};
+
+V.apero = () => {
+  const a = S.aperos.find(x => x.id === U.apId);
+  const f = freq();
+  const list = S.players.filter(p => p.actif || (a && a.participants.includes(p.id)))
+    .sort((x, y) => (f[y.id] || 0) - (f[x.id] || 0) || x.name.localeCompare(y.name));
+  const present = a ? a.participants : [];
+  const vs = a ? S.versements.filter(v => v.apId === a.id) : [];
+  const givers = a ? S.players.filter(p => present.includes(p.id) || vs.some(v => v.playerId === p.id)) : [];
+  const recus = vs.reduce((s, v) => s + v.montant, 0);
+  const prev = [...S.aperos].sort(byDt).reverse().filter(x => x.id !== U.apId).slice(0, 6);
+  return topbar('Apéro', a ? fday(a.dt) : 'Touche les gars présents') + `
+  ${a ? `<div class="when"><span class="muted">Date</span><input type="date" data-ap="dt" value="${a.dt.slice(0, 10)}"></div>` : ''}
+  <div class="row" style="display:flex;justify-content:space-between;align-items:baseline;margin:0 2px 8px"><span class="count">${present.length} présent${present.length > 1 ? 's' : ''}</span>${a && vs.length ? `<span class="muted">${eur(recus)} reçus</span>` : ''}</div>
+  <div class="pgrid">${list.map(p => { const on = present.includes(p.id); return `<button class="pbtn ${on ? 'on' : ''}" data-a="togP" data-id="${p.id}"><i>${on ? '✓' : ''}</i>${esc(p.name)}</button>`; }).join('')}</div>
+  <div class="card" style="margin-top:10px;display:flex;gap:8px;align-items:center"><input class="grow" style="padding:11px;border:1px solid var(--rule);border-radius:10px;background:var(--soft)" placeholder="Nouveau : Prénom Nom" data-f="newApPlayer" value="${esc(U.newApPlayer || '')}"><button class="btn" data-a="addApPlayer">+ Ajouter</button></div>
+  ${a ? `<h2>Qui a donné quoi</h2>
+  <div class="card">${givers.length ? givers.map(p => { const mine = vs.filter(v => v.playerId === p.id); return `<div class="line"><div class="grow"><div class="name">${esc(p.name)}</div>${mine.map(v => `<button class="chip x" data-a="delV" data-id="${v.id}" data-arm="1" title="Supprimer">${vLabel(v)} ✕</button>`).join('')}</div><button class="btn small ${mine.length ? 'ghost' : ''}" data-a="give" data-id="${p.id}">+ Donner</button></div>`; }).join('') : '<div class="empty">Coche les présents pour noter ce qu’ils donnent.</div>'}</div>
+  <div class="btns"><button class="btn wide" data-a="go" data-s="home">Terminer</button>${armBtn('delApero', a.id, 'Supprimer cet apéro', 'btn danger wide')}</div>` : ''}
+  ${prev.length ? `<details style="margin-top:14px"><summary>Apéros précédents</summary><div class="card">${prev.map(x => `<div class="line"><div class="grow"><div class="name">${fday(x.dt)}</div><div class="muted">${x.participants.length} présents</div></div><button class="btn small ghost" data-a="pickApero" data-id="${x.id}">Ouvrir</button></div>`).join('')}</div></details>` : ''}
+  ${a ? '' : '<div class="btns" style="margin-top:14px"><button class="btn ghost wide" data-a="go" data-s="home">Annuler</button></div>'}`;
+};
+
+V.courses = () => {
+  const d = U.draft;
+  const hist = [...S.achats].sort(byDt).reverse();
+  const rows = l => l.map(p => { const q = d.qty[p.id] || 0; return `<div class="line"><div class="grow"><div class="name">${esc(p.name)}</div><div class="muted">stock ${stockOf(p.id)}</div></div>${stepper('draft.qty.' + p.id, q)}</div>`; }).join('');
+  const groups = byType();
+  const nbArt = Object.values(d.qty).reduce((s, q) => s + (q || 0), 0);
+  return topbar('Courses', 'Ce que tu as acheté pour la buvette') + `
+  <label class="drop">📷 Scanner un ticket de caisse<small>Photo du ticket ou PDF, les produits sont pré-remplis</small><input type="file" accept="image/*,application/pdf" data-a="scanFile"></label>
+  ${U.scan ? `<p class="muted" style="text-align:center">${esc(U.scan)}</p>` : ''}
+  <h2>${d.fromTicket ? 'Vérifie les courses' : 'Nouvelles courses'}</h2>
+  <div class="card">
+    <div class="two">
+      <label class="f">Date<input type="date" data-f="draft.date" value="${d.date}"></label>
+      <label class="f">Total payé (€)<input inputmode="decimal" data-f="draft.total" value="${esc(d.total)}" placeholder="0,00"></label>
+    </div>
+    ${d.ticketTotal && Math.abs(d.ticketTotal - num(d.total)) >= 0.01 ? `<p class="muted" style="margin:-4px 0 8px">Total du ticket : ${eur(d.ticketTotal)}. Le total ci-dessus ne compte que les lignes gardées pour la buvette.</p>` : ''}
+    ${d.unknown.length ? `<div class="unk"><b>Lignes non reconnues</b><div class="muted">Associe-les à un produit ou laisse « Ignorer » (courses perso). L’appli retiendra l’association.</div>
+      ${d.unknown.map((u, i) => `<div class="line"><div class="grow"><div class="name" style="font-size:.9rem">${esc(u.text)}</div><div class="muted">${u.qty > 1 ? u.qty + ' × ' : ''}${eur(u.price)}</div></div><select data-unk="${i}"><option value="">Ignorer</option>${S.products.filter(p => p.actif).map(p => `<option value="${p.id}" ${u.pid === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div>`).join('')}</div>` : ''}
+    ${groups.filter(([t]) => t !== 'Autres').map(([t, l]) => `<div class="group">${t}</div>` + rows(l)).join('')}
+    ${groups.filter(([t]) => t === 'Autres').map(([, l]) => `<details ${l.some(p => d.qty[p.id]) ? 'open' : ''}><summary>Autres (ménage, vaisselle…)</summary>${rows(l)}</details>`).join('')}
+    <label class="f" style="margin-top:10px">Commentaire<input data-f="draft.comment" value="${esc(d.comment)}" placeholder="Super U, promo…"></label>
+    <label style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><input type="checkbox" data-f="draft.caisse" ${d.caisse ? 'checked' : ''}> Payé avec l’argent de la caisse</label>
+    <div class="total"><span>${nbArt} article${nbArt > 1 ? 's' : ''}</span><b>${eur(num(d.total))}</b></div>
+    <div class="btns"><button class="btn red wide" data-a="saveCourses">Enregistrer les courses</button>${d.fromTicket || nbArt ? '<button class="btn ghost wide" data-a="resetDraft">Tout effacer</button>' : ''}</div>
+  </div>
+  <h2>Courses de la saison</h2>
+  <div class="card">${hist.length ? hist.map(a => `<div class="line"><div class="grow"><div class="name">${fd(a.dt)}${a.comment ? ' <span class="muted">' + esc(a.comment) + '</span>' : ''}</div><div class="muted">${a.lignes.map(l => l.qty + ' ' + esc((prod(l.pid) || {}).name)).join(', ')}${a.caisse ? '' : ' (avancé hors caisse)'}</div></div><span class="num">${eur(a.total)}</span><button class="btn small ghost" data-a="viewAchat" data-id="${a.id}">Voir</button></div>`).join('') : '<div class="empty">Aucune course enregistrée.</div>'}</div>`;
+};
+
+V.inventaire = () => {
+  const li = lastInv(), per = periodes(), l = invs().reverse();
+  const e = entrees(li.dt, '9999');
+  const aps = S.aperos.filter(x => x.dt > li.dt).length;
+  return topbar('Inventaire', 'Dernier : ' + (li.dt !== '0000' ? fday(li.dt) : 'aucun')) + `
+  <div class="when"><span class="muted">Date de l’inventaire</span><input type="date" data-f="invDate" value="${U.invDate}"></div>
+  <p class="muted" style="margin:0 2px 12px">Compte ce qui reste réellement. La différence avec le stock attendu donne ce qui a été consommé depuis le dernier inventaire (${aps} apéro${aps > 1 ? 's' : ''}).</p>
+  <div class="card">
+  ${byType().map(([t, pl]) => `<div class="group">${t}</div>` + pl.map(p => { const att = stockOf(p.id), v = U.inv[p.id]; const diff = att - num(v); return `<div class="line"><div class="grow"><div class="name">${esc(p.name)}</div><div class="muted">attendu ${att}${e[p.id] ? ' (dont ' + e[p.id] + ' rentré' + (e[p.id] > 1 ? 's' : '') + ')' : ''}${diff > 0 ? ', <b class="neg">' + diff + ' bu' + (diff > 1 ? 's' : '') + '</b>' : diff < 0 ? ', <b class="pos">+' + (-diff) + '</b>' : ''}</div></div>${stepper('inv.' + p.id, v)}</div>`; }).join('')).join('')}
+  <div class="btns" style="margin-top:12px"><button class="btn red wide" data-a="saveInv">Valider l’inventaire</button></div>
+  </div>
+  <h2>Historique</h2>
+  <div class="card">${l.map((i, k) => { const p = per.find(x => x.to.id === i.id); return `<div class="line"><div class="grow"><div class="name">${fday(i.dt)}</div><div class="muted">${p ? eur(p.valeur) + ' consommés sur ' + p.nbAperos + ' apéro' + (p.nbAperos > 1 ? 's' : '') : esc(i.note || 'Inventaire de départ')}</div></div><button class="btn small ghost" data-a="viewInv" data-id="${i.id}">Voir</button></div>`; }).join('')}</div>`;
+};
+
+V.invDetail = () => {
+  const inv = S.inventaires.find(i => i.id === U.invView);
+  if (!inv) { screen = 'inventaire'; return V.inventaire(); }
+  const per = periodes().find(x => x.to.id === inv.id);
+  const ed = U.invEdit;
+  const list = byType(true).map(([t, pl]) => [t, pl.filter(p => p.actif || (inv.counts[p.id] || 0) || (per && per.conso[p.id]))]).filter(([, pl]) => pl.length);
+  const head = per ? `<div class="stats"><div class="stat"><b>${eur(per.valeur)}</b><span>consommés depuis le ${fday(per.from.dt)}</span></div><div class="stat"><b>${per.nbAperos}</b><span>apéro${per.nbAperos > 1 ? 's' : ''} sur la période</span></div></div>` : `<p class="muted" style="margin:0 2px 12px">${esc(inv.note || 'Inventaire de départ')} : c’est la référence de début, aucune consommation calculée.</p>`;
+  if (ed) return topbar('Modifier l’inventaire', fday(inv.dt), 'invDetail', 'Retour') + `
+  <div class="when"><span class="muted">Date</span><input type="date" data-f="invEdit.date" value="${ed.date}"></div>
+  <div class="card">${list.map(([t, pl]) => `<div class="group">${t}</div>` + pl.map(p => `<div class="line"><div class="grow"><div class="name">${esc(p.name)}</div><div class="muted">avant : ${inv.counts[p.id] || 0}</div></div>${stepper('invEdit.counts.' + p.id, ed.counts[p.id] || 0)}</div>`).join('')).join('')}
+  <div class="btns" style="margin-top:12px"><button class="btn red wide" data-a="saveInvEdit">Enregistrer les modifications</button><button class="btn ghost wide" data-a="cancelInvEdit">Annuler</button></div></div>`;
+  return topbar('Inventaire du ' + fday(inv.dt).replace(/^\S+ /, ''), 'Ce que tu as compté ce jour-là', 'inventaire', 'Inventaire') + head + `
+  <div class="card">${list.map(([t, pl]) => `<div class="group">${t}</div>` + pl.map(p => { const c = per ? per.conso[p.id] || 0 : 0; return `<div class="line"><div class="grow"><div class="name">${esc(p.name)}</div>${c ? `<div class="muted">${c > 0 ? c + ' consommé' + (c > 1 ? 's' : '') + ', ' + eur(c * (p.prix || 0)) : (-c) + ' en trop par rapport au stock attendu'}</div>` : ''}</div><span class="num" style="font:800 1.5rem var(--cond)">${inv.counts[p.id] || 0}</span></div>`; }).join('')).join('')}</div>
+  <div class="btns"><button class="btn wide" data-a="editInv">Modifier cet inventaire</button>${S.inventaires.length > 1 ? armBtn('delInv', inv.id, 'Supprimer cet inventaire', 'btn danger wide') : ''}</div>
+  <p class="muted">Modifier un inventaire recalcule la consommation de sa période et de la suivante, donc le coût moyen des apéros et les ratios.</p>`;
+};
+
+V.archive = () => {
+  const a = S.archives.find(x => x.id === U.archView);
+  if (!a) { screen = 'base'; return V.base(); }
+  const pl = [...a.players].map(x => ({ ...x, r: x.nb ? x.donne / x.nb : null })).sort((x, y) => (x.r ?? 1e9) - (y.r ?? 1e9));
+  return topbar('Saison ' + esc(a.season), a.source === 'manuel' ? 'Bilan saisi à la main' : 'Clôturée le ' + fday(a.date + 'T12:00'), 'base', 'Retour') + `
+  <div class="stats">
+    <div class="stat"><b>${a.nbAperos}</b><span>apéros</span></div>
+    <div class="stat"><b>${eur(a.parApero)}</b><span>coût moyen d’un apéro</span></div>
+    <div class="stat"><b>${eur(a.parGars)}</b><span>coût moyen par gars</span></div>
+    <div class="stat"><b>${a.caisseFin != null && a.caisseFin !== '' ? eur(a.caisseFin) : '–'}</b><span>en caisse à la fin</span></div>
+  </div>
+  <h2>Ratio par joueur</h2>
+  <div class="card scroll"><table><thead><tr><th>Joueur</th><th>Apéros</th><th>Donné</th><th>Ratio</th></tr></thead><tbody>
+  ${pl.map(x => `<tr><td>${esc(x.name)}</td><td>${x.nb === '' ? '–' : x.nb}</td><td>${eur0(x.donne)}</td><td class="num ${x.r == null ? '' : x.r >= a.parGars - 0.005 ? 'pos' : 'neg'}" style="font:800 1.2rem var(--cond)">${x.r == null ? '–' : Math.round(x.r)}</td></tr>`).join('') || '<tr><td colspan="4">Aucun joueur.</td></tr>'}
+  </tbody></table></div>
+  ${a.conso && a.conso.length ? `<h2>Consommé sur la saison</h2><div class="card">${a.conso.map(c => `<div class="line"><div class="grow name">${esc(c.name)}</div><span class="muted">${c.qty}</span><span class="num">${eur(c.valeur)}</span></div>`).join('')}</div>` : ''}
+  <div class="btns">${a.source === 'manuel' ? '<button class="btn wide" data-a="editArch">Modifier ce bilan</button>' : ''}${armBtn('delArch', a.id, 'Supprimer cette archive', 'btn danger wide')}</div>`;
+};
+
+V.archEdit = () => {
+  const f = U.arch;
+  return topbar(f.id ? 'Modifier le bilan' : 'Bilan d’une saison passée', 'Saisie à la main', 'base', 'Retour') + `
+  <div class="card"><div class="two">
+    <label class="f">Saison<input data-f="arch.season" value="${esc(f.season)}" placeholder="2025-26"></label>
+    <label class="f">Nombre d’apéros<input inputmode="numeric" data-f="arch.nbAperos" value="${esc(f.nbAperos)}"></label>
+    <label class="f">Coût moyen d’un apéro (€)<input inputmode="decimal" data-f="arch.parApero" value="${esc(f.parApero)}"></label>
+    <label class="f">Coût moyen par gars (€)<input inputmode="decimal" data-f="arch.parGars" value="${esc(f.parGars)}"></label>
+    <label class="f">Caisse en fin de saison (€)<input inputmode="decimal" data-f="arch.caisseFin" value="${esc(f.caisseFin)}" placeholder="facultatif"></label></div>
+    <p class="muted" style="margin:0">Si tu ne connais qu’un des deux coûts moyens, laisse l’autre vide : il sera calculé à partir des présences.</p></div>
+  <h2>Coller depuis ton Google Sheet</h2>
+  <div class="card"><p class="muted" style="margin-top:0">Sélectionne dans ton ancien bilan les colonnes Nom, Nb apéros, Cagnotte (dans cet ordre), copie, colle ici puis « Remplir ». Une ligne par joueur.</p>
+    <textarea class="json" data-f="arch.paste" placeholder="Kévin Kubacki	12	40">${esc(f.paste)}</textarea>
+    <button class="btn ghost" style="margin-top:8px" data-a="archPaste">Remplir le tableau</button></div>
+  <h2>Joueurs</h2>
+  <div class="card"><div class="line muted" style="font-size:.8rem;font-weight:600"><div class="grow">Joueur</div><div style="width:64px;text-align:center">Apéros</div><div style="width:84px;text-align:center">Donné €</div></div>
+    ${f.rows.map((r, i) => `<div class="line"><div class="grow">${r.fixed ? `<span class="name">${esc(r.name)}</span>` : `<input style="width:100%;padding:8px;border:1px solid var(--rule);border-radius:8px" data-f="arch.rows.${i}.name" value="${esc(r.name)}" placeholder="Nom">`}</div><input inputmode="numeric" style="width:64px;padding:8px;border:1px solid var(--rule);border-radius:8px;text-align:center" data-f="arch.rows.${i}.nb" value="${esc(r.nb)}"><input inputmode="decimal" style="width:84px;padding:8px;border:1px solid var(--rule);border-radius:8px;text-align:center" data-f="arch.rows.${i}.donne" value="${esc(r.donne)}"></div>`).join('')}
+    <button class="btn ghost small" style="margin-top:8px" data-a="archRow">+ Ajouter un ancien joueur</button>
+    <p class="muted">Les lignes laissées vides sont ignorées.</p></div>
+  <div class="btns"><button class="btn red wide" data-a="saveArch">Enregistrer le bilan</button><button class="btn ghost wide" data-a="${f.id ? 'viewArch' : 'go'}" data-s="base" data-id="${f.id || ''}">Annuler</button></div>`;
+};
+
+V.achatDetail = () => {
+  const a = S.achats.find(x => x.id === U.achatView);
+  if (!a) { screen = 'courses'; return V.courses(); }
+  const e = U.achatEdit;
+  if (e) {
+    const rows = l => l.map(p => `<div class="line"><div class="grow"><div class="name">${esc(p.name)}</div>${(a.lignes.find(x => x.pid === p.id) || {}).qty ? `<div class="muted">avant : ${a.lignes.filter(x => x.pid === p.id).reduce((s, x) => s + x.qty, 0)}</div>` : ''}</div>${stepper('achatEdit.qty.' + p.id, e.qty[p.id] || 0)}</div>`).join('');
+    const groups = byType(true).map(([t, l]) => [t, l.filter(p => p.actif || e.qty[p.id])]).filter(([, l]) => l.length);
+    return topbar('Modifier les courses', fday(a.dt), 'achatDetail', 'Retour') + `
+    <div class="card"><div class="two">
+      <label class="f">Date<input type="date" data-f="achatEdit.date" value="${e.date}"></label>
+      <label class="f">Total payé (€)<input inputmode="decimal" data-f="achatEdit.total" value="${esc(e.total)}"></label></div>
+      <label class="f">Commentaire<input data-f="achatEdit.comment" value="${esc(e.comment)}"></label>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-f="achatEdit.caisse" ${e.caisse ? 'checked' : ''}> Payé avec l’argent de la caisse</label></div>
+    <div class="card">${groups.filter(([t]) => t !== 'Autres').map(([t, l]) => `<div class="group">${t}</div>` + rows(l)).join('')}
+      ${groups.filter(([t]) => t === 'Autres').map(([, l]) => `<details ${l.some(p => e.qty[p.id]) ? 'open' : ''}><summary>Autres (ménage, vaisselle…)</summary>${rows(l)}</details>`).join('')}</div>
+    <div class="btns"><button class="btn red wide" data-a="saveAchatEdit">Enregistrer les modifications</button><button class="btn ghost wide" data-a="cancelAchatEdit">Annuler</button></div>`;
+  }
+  const nb = a.lignes.reduce((s, l) => s + l.qty, 0);
+  return topbar('Courses du ' + fd(a.dt), a.comment ? esc(a.comment) : (a.source === 'ticket' ? 'Scannées depuis un ticket' : 'Saisies à la main'), 'courses', 'Courses') + `
+  <div class="stats">
+    <div class="stat"><b>${eur(a.total)}</b><span>${a.caisse ? 'payé avec la caisse' : 'avancé hors caisse'}</span></div>
+    <div class="stat"><b>${nb}</b><span>article${nb > 1 ? 's' : ''} pour la buvette</span></div>
+  </div>
+  <div class="card">${byType(true).map(([t, l]) => { const ls = l.filter(p => a.lignes.some(x => x.pid === p.id)); return ls.length ? `<div class="group">${t}</div>` + ls.map(p => `<div class="line"><div class="grow name">${esc(p.name)}</div><span class="num" style="font:800 1.5rem var(--cond)">${a.lignes.filter(x => x.pid === p.id).reduce((s, x) => s + x.qty, 0)}</span></div>`).join('') : ''; }).join('')}</div>
+  <div class="btns"><button class="btn wide" data-a="editAchat">Modifier ces courses</button>${armBtn('delAchat', a.id, 'Supprimer ces courses', 'btn danger wide')}</div>
+  <p class="muted">Modifier ou supprimer des courses recalcule le stock, la caisse et la consommation de la période concernée.</p>`;
+};
+
+V.setup = () => {
+  const c = U.cfg || (U.cfg = { url: (apiCfg() || {}).url || '', token: '' });
+  return `<section class="hero"><div class="id"><img src="${LOGO}" alt="Logo Bellegarde Ladon FC"><div><div class="club">Buvette BLFC</div><div class="sub">Connexion à ton Google Sheet</div></div></div></section>
+  <h2>Première connexion</h2>
+  <div class="card">
+    <p class="muted" style="margin-top:0">Colle l’adresse de ton script Google (elle se termine par <b>/exec</b>) et le code secret que tu as mis dans Code.gs. C’est à faire une seule fois sur ce téléphone.</p>
+    <label class="f">Adresse du script<input data-f="cfg.url" value="${esc(c.url)}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off"></label>
+    <label class="f">Code secret<input data-f="cfg.token" value="${esc(c.token)}" type="password" autocomplete="off"></label>
+    <button class="btn red wide" data-a="connectApi">Connecter</button>
+  </div>
+  ${MODE === 'local' ? '<button class="btn ghost wide" data-a="skipSetup">Essayer sans connexion (données de test)</button>' : '<button class="btn ghost wide" data-a="go" data-s="base">Annuler</button>'}`;
+};
+
+V.bilan = () => {
+  const st = stats(), m = money();
+  const b = bilan().filter(x => x.p.actif || x.nb || x.donne).sort((x, y) => (x.ratio ?? 1e9) - (y.ratio ?? 1e9) || y.nb - x.nb);
+  const cls = x => x.ok == null ? '' : x.ok ? 'pos' : 'neg';
+  return topbar('Bilan', 'Saison ' + esc(S.season)) + `
+  <div class="stats">
+    <div class="stat"><b>${st.nbMes ? eur(st.parApero) : '–'}</b><span>coût moyen d’un apéro</span></div>
+    <div class="stat"><b>${st.presMes ? eur(st.parGars) : '–'}</b><span>coût moyen par gars</span></div>
+    <div class="stat"><b>${eur(st.valeur)}</b><span>consommé (${st.nbMes} apéro${st.nbMes > 1 ? 's' : ''} mesuré${st.nbMes > 1 ? 's' : ''})</span></div>
+    <div class="stat"><b>${eur(m.caisse)}</b><span>en caisse</span></div>
+    <div class="stat"><b>${eur(m.verse + m.nature)}</b><span>donné (dont ${eur(m.nature)} en apports)</span></div>
+    <div class="stat"><b>${eur(m.courses)}</b><span>de courses</span></div>
+  </div>
+  <div class="h2row"><h2>Ratio par joueur</h2><button class="wa" data-a="shareRatio">${WA_ICON}WhatsApp</button></div>
+  <div class="card scroll"><p class="muted" style="margin-top:0">Objectif : au moins <b>${st.presMes ? eur(st.parGars) : '–'}</b> par apéro (coût moyen par gars).</p><table><thead><tr><th>Joueur</th><th>Apéros</th><th>Donné</th><th>Ratio</th></tr></thead><tbody>
+  ${b.map(x => `<tr class="click" data-a="give" data-id="${x.p.id}"><td>${esc(x.p.name)}</td><td>${x.nb}</td><td>${eur0(x.donne)}</td><td class="num ${cls(x)}" style="font:800 1.2rem var(--cond)">${x.ratio == null ? '–' : Math.round(x.ratio)}</td></tr>`).join('')}
+  </tbody></table>
+  <p class="muted">Ratio = ce que le joueur a donné (argent + apports) ÷ son nombre d’apéros, arrondi. En vert s’il couvre le coût moyen par gars, en rouge sinon. Touche une ligne pour noter un don en dehors d’un apéro.</p></div>
+  <h2>Consommé depuis le début de saison</h2>
+  <div class="card">${Object.keys(st.conso).length ? S.products.filter(p => st.conso[p.id]).map(p => `<div class="line"><div class="grow name">${esc(p.name)}</div><span class="muted">${st.conso[p.id]} × ${eur(p.prix)}</span><span class="num">${eur(st.conso[p.id] * p.prix)}</span></div>`).join('') : '<div class="empty">Fais un inventaire après un apéro pour mesurer la consommation.</div>'}</div>
+  ${S.archives.length ? `<h2>Saisons précédentes</h2><div class="card">${archSorted().map(x => `<div class="line"><div class="grow"><div class="name">Saison ${esc(x.season)}</div><div class="muted">${x.nbAperos} apéros, ${eur(x.parGars)} par gars</div></div><button class="btn small ghost" data-a="viewArch" data-id="${x.id}">Voir</button></div>`).join('')}</div>` : ''}`;
+};
+
+V.base = () => {
+  const t = U.dbTab;
+  let body = '';
+  if (t === 'joueurs') {
+    body = `<div class="card"><div style="display:flex;gap:8px"><input class="grow" style="padding:11px;border:1px solid var(--rule);border-radius:10px;background:var(--soft)" placeholder="Prénom Nom" data-f="newPlayer" value="${esc(U.newPlayer)}"><button class="btn" data-a="addPlayer">Ajouter</button></div></div>
+    ${(() => { const row = p => U.editP && U.editP.id === p.id ? `
+      <div style="padding:8px 0;border-bottom:1px solid #EEF1F7"><label class="f">Nom<input data-f="editP.name" value="${esc(U.editP.name)}"></label>
+      <div class="btns" style="margin-bottom:10px">${['actif', 'licence', 'paiement', 'chaussette'].map(k => `<button class="btn small ${U.editP[k] ? '' : 'ghost'}" data-a="togEP" data-k="${k}">${U.editP[k] ? '✓ ' : ''}${{ actif: 'Actif', licence: 'Licence', paiement: 'Cotisation payée', chaussette: 'Chaussettes' }[k]}</button>`).join('')}</div>
+      <div class="btns"><button class="btn" data-a="savePlayer">Enregistrer</button><button class="btn ghost" data-a="cancelEP">Annuler</button>${(() => { const n = S.aperos.filter(a => a.participants.includes(p.id)).length, v = S.versements.filter(x => x.playerId === p.id).length; return armBtn('delPlayer', p.id, 'Supprimer', 'btn danger') + (n || v ? `<div class="muted" style="width:100%">Supprimer efface aussi ${n} présence${n > 1 ? 's' : ''} et ${v} don${v > 1 ? 's' : ''}, ce qui change les moyennes. Pour garder l’historique, mets-le plutôt Inactif.</div>` : ''); })()}</div></div>` : `
+      <div class="line ${p.actif ? '' : 'off'}"><div class="grow"><div class="name">${esc(p.name)}</div><div class="muted">${['licence', 'paiement', 'chaussette'].filter(k => p[k]).map(k => ({ licence: 'licence', paiement: 'payé', chaussette: 'chaussettes' }[k])).join(', ') || 'rien de validé'}</div></div><button class="tgl ${p.actif ? 'on' : ''}" data-a="togActif" data-id="${p.id}" aria-pressed="${p.actif}">${p.actif ? 'Actif' : 'Inactif'}</button><button class="btn small ghost" data-a="editPlayer" data-id="${p.id}">Modifier</button></div>`; const az = (a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' });
+      const act = S.players.filter(p => p.actif).sort(az), ina = S.players.filter(p => !p.actif).sort(az);
+      return `<div class="group">Actifs (${act.length})</div><div class="card">${act.map(row).join('') || '<div class="empty">Aucun joueur actif.</div>'}</div>`
+        + (ina.length ? `<div class="group" style="margin-top:18px">Inactifs (${ina.length})</div><div class="card">${ina.map(row).join('')}</div>` : ''); })()}
+    <p class="muted">Un joueur inactif n’apparaît plus dans l’apéro mais garde son historique.</p>`;
+  } else if (t === 'produits') {
+    const f = U.editProd;
+    body = `<button class="btn wide" style="margin-bottom:12px" data-a="newProd">Ajouter un produit</button>
+    ${f ? `<div class="card"><div class="two">
+      <label class="f">Nom<input data-f="editProd.name" value="${esc(f.name)}"></label>
+      <label class="f">Catégorie<select data-f="editProd.type">${TYPES.map(x => `<option ${x === f.type ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+      <label class="f">Prix moyen (€)<input inputmode="decimal" data-f="editProd.prix" value="${esc(f.prix)}"></label>
+      <label class="f">Alerte si stock ≤<input inputmode="numeric" data-f="editProd.seuil" value="${esc(f.seuil)}"></label>
+      <label class="f">Valeur si apporté (€)<input inputmode="decimal" data-f="editProd.apport" value="${esc(f.apport)}" placeholder="= prix moyen"></label>
+      <label class="f">Unités par lot<input inputmode="numeric" data-f="editProd.lot" value="${esc(f.lot)}"></label>
+      <label class="f">Icône (un emoji)<input data-f="editProd.icon" value="${esc(f.icon)}" placeholder="🍺"></label></div>
+      <label class="f">Mots du ticket de caisse (séparés par des virgules)<input data-f="editProd.alias" value="${esc(f.alias)}"></label>
+      <label style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><input type="checkbox" data-f="editProd.actif" ${f.actif ? 'checked' : ''}> Actif</label>
+      <div class="btns"><button class="btn" data-a="saveProd">Enregistrer</button><button class="btn ghost" data-a="cancelProd">Annuler</button></div></div>` : ''}
+    ${byType(true).map(([ty, l]) => `<div class="group">${ty}</div><div class="card">` + l.map(p => `<div class="line" style="${p.actif ? '' : 'opacity:.5'}"><div class="grow"><div class="name">${iconsOn() ? icone(p) + ' ' : ''}${esc(p.name)}</div><div class="muted">${eur(p.prix)}${p.seuil ? ', alerte à ' + p.seuil : ''}${p.apport ? ', apport ' + eur0(p.apport) : ''}</div></div><button class="btn small ghost" data-a="editProd" data-id="${p.id}">Modifier</button></div>`).join('') + '</div>').join('')}
+    <p class="muted">Le prix moyen sert à calculer le coût des apéros. « Valeur si apporté » est ce qu’on compte quand un joueur ramène le produit (fougasse 5 €, bouteille 15 €). « Unités par lot » sert au scan : un pack reconnu compte pour ce nombre d’unités, sauf si le ticket l’indique (ex. 12X25CL).</p>`;
+  } else {
+    body = `<div class="card"><div class="two">
+      <label class="f">Saison<input data-s="season" value="${esc(S.season)}"></label>
+      <label class="f">Reste saison passée (€)<input inputmode="decimal" data-s="resteN1" value="${S.resteN1}"></label></div>
+      <p class="muted" style="margin-top:0">Nouvelle saison : le bilan de la saison ${esc(S.season)} est archivé ci-dessous, le stock actuel devient l’inventaire de départ, la caisse devient le reste de la saison passée, et apéros, courses et dons repartent à zéro. La saison passe à ${esc(nextSeason(S.season))}.</p>
+      ${armBtn('newSeason', '', 'Clôturer et démarrer ' + esc(nextSeason(S.season)), 'btn danger')}</div>
+      <h2>Saisons précédentes</h2>
+      <div class="card">${S.archives.length ? archSorted().map(a => `<div class="line"><div class="grow"><div class="name">Saison ${esc(a.season)}</div><div class="muted">${a.nbAperos} apéros, ${eur(a.parGars)} par gars${a.source === 'manuel' ? ', saisi à la main' : ''}</div></div><button class="btn small ghost" data-a="viewArch" data-id="${a.id}">Voir</button></div>`).join('') : '<div class="empty">Aucune saison archivée.</div>'}
+      <button class="btn ghost wide" style="margin-top:8px" data-a="newArch">Saisir le bilan d’une saison passée</button></div>
+      ${GAS ? '' : `<h2>Connexion au Google Sheet</h2>
+      <div class="card">${MODE === 'api' ? `<div class="line"><div class="grow"><div class="name">✅ Connecté</div><div class="muted">Les données sont lues et enregistrées dans ton Google Sheet.</div></div></div>${armBtn('disconnectApi', '', 'Déconnecter cet appareil', 'btn danger')}` : `<p class="muted" style="margin-top:0">Mode test : les données restent sur cet appareil.</p><button class="btn" data-a="go" data-s="setup">Connecter mon Google Sheet</button>`}</div>`}
+      <h2>Apparence</h2>
+      <div class="card"><div class="line"><div class="grow"><div class="name">Icônes</div><div class="muted">Sur les niveaux de la buvette et les boutons de l’accueil</div></div><button class="tgl ${iconsOn() ? 'on' : ''}" data-a="togIcons">${iconsOn() ? 'Activées' : 'Désactivées'}</button></div></div>
+      <h2>Sauvegarde manuelle</h2>
+      <div class="card"><p class="muted" style="margin-top:0">${online() ? 'Tout est enregistré automatiquement dans ton Google Sheet.' : 'Mode test : les données restent dans ce navigateur.'}</p>
+      <textarea class="json" data-f="io" placeholder="Colle ici une sauvegarde pour l’importer">${esc(U.io)}</textarea>
+      <div class="btns"><button class="btn ghost" data-a="export">Afficher la sauvegarde</button>${armBtn('import', '', 'Importer', 'btn danger')}${armBtn('reseed', '', 'Revenir aux données de départ', 'btn danger')}</div></div>`;
+  }
+  return topbar('Base de données') + `<div class="seg"><button class="${t === 'joueurs' ? 'on' : ''}" data-a="dbTab" data-t="joueurs">Joueurs</button><button class="${t === 'produits' ? 'on' : ''}" data-a="dbTab" data-t="produits">Produits</button><button class="${t === 'saison' ? 'on' : ''}" data-a="dbTab" data-t="saison">Saison</button></div>` + body;
+};
+
+/* ----- feuille « Donner » ----- */
+function renderSheet() {
+  const sh = U.sheet, box = document.getElementById('sheet');
+  box.classList.toggle('open', !!(sh || U.shot));
+  if (U.shot && !sh) { document.getElementById('panel').innerHTML = `<h3>Image prête</h3><p class="muted" style="margin-top:0">Appui long sur l’image, puis « Partager » et choisis WhatsApp (ou « Enregistrer l’image » pour l’envoyer depuis ta galerie).</p><div class="shot"><img src="${U.shot.url}" alt="Visuel à partager"></div><div class="btns" style="margin-top:12px"><button class="btn ghost wide" data-a="closeShot">Fermer</button></div>`; return; }
+  if (!sh) return;
+  const p = player(sh.playerId);
+  const prods = S.products.filter(x => x.actif && x.type !== 'Autres');
+  const sel = sh.pid ? prod(sh.pid) : null;
+  const val = sh.nature ? (sel ? (sel.apport || sel.prix) * sh.qty : 0) : num(sh.montant);
+  document.getElementById('panel').innerHTML = `
+  <h3>${esc(p.name)} donne…</h3>
+  <div class="seg"><button class="${sh.nature ? '' : 'on'}" data-a="shMode" data-v="0">De l’argent</button><button class="${sh.nature ? 'on' : ''}" data-a="shMode" data-v="1">Un produit</button></div>
+  ${sh.nature ? `<div class="plist">${prods.sort((a, b) => (b.apport || 0) - (a.apport || 0)).map(x => `<button class="${sh.pid === x.id ? 'on' : ''}" data-a="shProd" data-id="${x.id}"><span>${esc(x.name)}</span><span class="muted">${eur0(x.apport || x.prix)}</span></button>`).join('')}</div>
+    ${sel ? `<div class="line"><div class="grow name">Quantité</div>${stepper('sheet.qty', sh.qty)}</div>` : ''}`
+    : `<div class="quick">${[2, 5, 10, 20].map(n => `<button class="${num(sh.montant) === n ? 'on' : ''}" data-a="shAmt" data-v="${n}">${n} €</button>`).join('')}</div>
+    <label class="f">Autre montant<input inputmode="decimal" data-f="sheet.montant" value="${esc(sh.montant)}" placeholder="0,00"></label>`}
+  <div class="btns" style="margin-top:10px"><button class="btn red wide" data-a="shSave">${val > 0 ? 'Valider ' + eur0(val) : 'Valider'}</button><button class="btn ghost wide" data-a="closeSheet">Annuler</button></div>`;
+}
+
+function render() {
+  if (!S) return;
+  document.getElementById('app').innerHTML = V[screen]();
+  renderSheet();
+}
+
+/* ================= Scan de ticket ================= */
+function parseTicket(text) {
+  // Lecture pensée pour les tickets Super U (Magasins U), avec repli générique pour les autres enseignes.
+  const lines = String(text).split(/\r?\n/).map(norm).filter(Boolean);
+  const PRICE = /(-?\d{1,4}[.,]\d{2})\s*(?:€|EUR)?(?:\s+(?:\d{1,2}|[A-Z]\d?|\*))?\s*$/;
+  const MULT = /^(\d{1,3})\s*[X*×]\s*(\d{1,4}[.,]\d{2})\s*(?:€|EUR)?/;
+  const SKIP = /TVA|CARTE|\bCB\b|VISA|MASTERCARD|RENDU|ESPECES|MONTANT|MERCI|FIDELIT|CAGNOT|SIRET|TEL\b|TELEPHONE|NB ARTICLE|NOMBRE DE LIGNES|TICKET|MAGASIN|HORAIRE|PAIEMENT|SANS CONTACT|AUTORIS|ELIGIBLES|SOLDE|VIGNETTE|\*{3,}/;
+  const items = [], reductions = [];
+  let ticketTotal = null, paid = null, date = null, dateAny = null, pendingName = null, phase = 'items';
+  for (const L of lines) {
+    const dt = L.match(/\b(\d{2})\/(\d{2})\/(\d{2}|\d{4})\s+\d{2}:\d{2}/);
+    if (dt && !date) date = (dt[3].length === 2 ? '20' + dt[3] : dt[3]) + '-' + dt[2] + '-' + dt[1];
+    const da = L.match(/\b(\d{2})[\/.-](\d{2})[\/.-](20\d{2})\b/);
+    if (da && !dateAny && +da[2] <= 12) dateAny = da[3] + '-' + da[2] + '-' + da[1];
+    const pm = L.match(PRICE), price = pm ? num(pm[1]) : null;
+    if (/RESTE A PAYER|NET A PAYER|MONTANT A PAYER/.test(L)) { if (pm) paid = price; phase = 'after'; continue; }
+    if (/\bTOTAL\b/.test(L) && !/SOUS.?TOTAL|TVA|REDUC|REMISE/.test(L)) { if (pm && ticketTotal == null) ticketTotal = price; phase = 'after'; continue; }
+    if (/SOUS.?TOTAL|TOTAL (TVA|REDUC|REMISE)/.test(L)) { phase = 'after'; continue; }
+    if (pm && price < 0) { // réduction : « 2 x 3.75€ LOT 2 BIERE HEINEKEN X12  -7,50 € »
+      reductions.push({ text: L.slice(0, pm.index).replace(MULT, '').trim(), amount: -price }); continue;
+    }
+    if (phase !== 'items') continue;               // après le total : gains carte, TVA, promos… ignorés
+    const mm = L.match(MULT);
+    if (mm && !/[A-Z]{3}/.test(L.slice(mm[0].length))) { // ligne quantité « 4 x 7,50 EUR »
+      const q = +mm[1], unit = num(mm[2]);
+      const tail = L.slice(mm[0].length).match(PRICE);
+      const lineTot = tail ? num(tail[1]) : r2(q * unit);
+      const prev = items[items.length - 1];
+      if (pendingName) { items.push({ text: pendingName, price: lineTot, qty: q }); pendingName = null; }
+      else if (prev && prev.qty === 1 && Math.abs(prev.price - r2(q * unit)) < 0.03) prev.qty = q;
+      continue;
+    }
+    if (SKIP.test(L)) { pendingName = null; continue; }
+    if (!pm) { pendingName = /[A-Z]{3}/.test(L) ? L : null; continue; } // rayon (CHIPS, TRAITEUR…) ou nom sans prix
+    const name = L.slice(0, pm.index).replace(/[€*]+\s*$/, '').trim();
+    if (!/[A-Z]{2}/.test(name)) continue;
+    items.push({ text: name, price, qty: 1 }); pendingName = null;
+  }
+  // chaque réduction est retirée de l'article correspondant (sinon du dernier)
+  reductions.forEach(r => {
+    const p = matchProduct(r.text);
+    const it = (p && items.find(i => matchProduct(i.text) === p)) || items.find(i => r.text.split(' ').some(w => w.length > 4 && i.text.includes(w))) || items[items.length - 1];
+    if (it) { it.price = r2(it.price - r.amount); it.remise = r2((it.remise || 0) + r.amount); }
+  });
+  return { items, ticketTotal, paid, date: date || dateAny };
+}
+function matchProduct(name) {
+  let best = null, pos = 1e9, len = 0;
+  S.products.forEach(p => (p.alias || []).forEach(a => {
+    const A = norm(a); if (!A) return;
+    const i = name.indexOf(A);
+    if (i >= 0 && (i < pos || (i === pos && A.length > len))) { best = p; pos = i; len = A.length; }
+  }));
+  return best;
+}
+function unitsFor(name, p, qty) {
+  // pack détecté sur le ticket : 12X25CL, 6X1,75L, X12…
+  const pk = name.match(/\b(\d{1,2})\s*X\s*\d{1,3}(?:[.,]\d+)?\s*(?:CL|L|ML)\b/) || name.match(/\bX\s*(\d{1,2})\b/);
+  return qty * (pk ? +pk[1] : (p.lot || 1));
+}
+function applyTicket(res) {
+  const d = newDraft(); d.fromTicket = true; d.ticketTotal = res.paid ?? res.ticketTotal;
+  if (res.date) d.date = res.date;
+  let total = 0; d.lines = [];
+  res.items.forEach(it => {
+    const p = matchProduct(it.text);
+    if (p) { const u = unitsFor(it.text, p, it.qty); d.qty[p.id] = (d.qty[p.id] || 0) + u; total += it.price; d.lines.push({ pid: p.id, units: u, price: it.price, text: it.text }); }
+    else d.unknown.push({ text: it.text, price: it.price, qty: it.qty, pid: '' });
+  });
+  d.total = total ? String(r2(total)).replace('.', ',') : '';
+  U.draft = d;
+  const ok = res.items.length - d.unknown.length;
+  const reste = d.ticketTotal != null ? r2(d.ticketTotal - total) : 0;
+  U.scan = !res.items.length ? 'Aucun article lu. Réessaie avec une photo plus nette, bien à plat, ou saisis à la main.'
+    : ok + ' article' + (ok > 1 ? 's' : '') + ' reconnu' + (ok > 1 ? 's' : '') + (d.unknown.length ? ', ' + d.unknown.length + ' à vérifier' : '') + '. '
+      + (d.ticketTotal != null ? (Math.abs(reste) < 0.01 ? 'Le total correspond au ticket (' + eur(d.ticketTotal) + ').' : 'Ticket : ' + eur(d.ticketTotal) + ', dont ' + eur(reste) + ' hors buvette.') : '');
+}
+async function pdfText(file) {
+  const base = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+  await loadScript(base + 'pdf.min.js');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = base + 'pdf.worker.min.js';
+  const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  const out = [];
+  for (let n = 1; n <= doc.numPages; n++) {
+    const tc = await (await doc.getPage(n)).getTextContent();
+    const its = tc.items.filter(i => i.str.trim()).sort((a, b) => b.transform[5] - a.transform[5] || a.transform[4] - b.transform[4]);
+    let row = [], y = null;
+    const flush = () => { if (row.length) out.push(row.sort((a, b) => a.transform[4] - b.transform[4]).map(i => i.str).join(' ')); row = []; };
+    its.forEach(i => { const yy = i.transform[5]; if (y !== null && Math.abs(yy - y) > 2.5) flush(); if (!row.length) y = yy; row.push(i); });
+    flush();
+  }
+  return out.join('\n');
+}
+function shrink(file) {
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => { const k = Math.min(1, 1800 / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = img.width * k; c.height = img.height * k; const x = c.getContext('2d'); x.filter = 'grayscale(1) contrast(1.3)'; x.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', 0.85)); };
+    img.onerror = () => rej(new Error('Image illisible')); img.src = url;
+  });
+}
+async function imageText(file) {
+  const data = await shrink(file);
+  if (online()) return await backend.ocr(data.split(',')[1], 'image/jpeg');
+  await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
+  const r = await Tesseract.recognize(data, 'fra', { logger: m => { if (m.status === 'recognizing text') { U.scan = 'Lecture du ticket… ' + Math.round(m.progress * 100) + ' %'; const el = document.querySelector('#app p.muted'); if (el) el.textContent = U.scan; } } });
+  return r.data.text;
+}
+async function scan(file) {
+  U.scan = 'Lecture du ticket…'; render();
+  try {
+    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+    const text = isPdf ? await pdfText(file) : await imageText(file);
+    if (isPdf && text.replace(/\s/g, '').length < 20) { U.scan = 'Ce PDF ne contient que des images. Prends plutôt une photo du ticket.'; render(); return; }
+    applyTicket(parseTicket(text));
+  } catch (e) { U.scan = 'Lecture impossible (' + (e.message || e) + '). Saisis les courses à la main.'; }
+  render();
+}
+
+
+/* ================= Visuels à partager sur WhatsApp ================= */
+const WA_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.6.3a2.6 2.6 0 0 0-.8 1.9c0 1.1.8 2.2.9 2.4.1.1 1.6 2.5 4 3.5 1.5.6 2 .7 2.8.6.4-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.5-.3Z"/></svg>';
+const C = { blue: '#012C94', blueD: '#001B5E', red: '#B81518', ink: '#0B1A3F', muted: '#56648A', wall: '#EEF2F9', ok: '#1F8A4C', okbg: '#DDF2E5', redbg: '#FBE4E5', rule: '#D0D8E8' };
+const FC = '"Barlow Condensed","Arial Narrow",Arial,sans-serif', FB = 'Barlow,"Segoe UI",Roboto,Arial,sans-serif';
+const EMO = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+function loadImg(src) { return new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; }); }
+function rrect(x, X, Y, w, h, r) { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); }
+function fitText(x, t, max) { if (x.measureText(t).width <= max) return t; while (t.length > 1 && x.measureText(t + '…').width > max) t = t.slice(0, -1); return t + '…'; }
+async function header(x, W, title, sub) {
+  x.fillStyle = C.blue; x.fillRect(0, 0, W, 250);
+  x.strokeStyle = 'rgba(255,255,255,.12)'; x.lineWidth = 6; x.beginPath(); x.arc(W - 40, 20, 190, 0, Math.PI * 2); x.stroke();
+  x.fillStyle = C.red; x.fillRect(0, 250, W, 12);
+  const logo = await loadImg(LOGO);
+  if (logo) { x.save(); x.fillStyle = C.red; x.beginPath(); x.arc(150, 125, 96, 0, Math.PI * 2); x.fill(); x.fillStyle = '#fff'; x.beginPath(); x.arc(150, 125, 89, 0, Math.PI * 2); x.fill(); x.beginPath(); x.arc(150, 125, 82, 0, Math.PI * 2); x.clip(); x.drawImage(logo, 68, 43, 164, 164); x.restore(); }
+  x.fillStyle = '#fff'; x.font = `800 72px ${FC}`; x.textBaseline = 'alphabetic'; x.fillText(title, 280, 118);
+  x.fillStyle = '#C3CFF0'; x.font = `500 34px ${FB}`; x.fillText(sub, 282, 172);
+}
+function footer(x, W, H, txt) {
+  x.fillStyle = C.blueD; x.fillRect(0, H - 80, W, 80);
+  x.fillStyle = '#C3CFF0'; x.font = `600 28px ${FB}`; x.textAlign = 'center'; x.fillText(txt, W / 2, H - 30); x.textAlign = 'left';
+}
+async function drawStock() {
+  if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  const m = money();
+  const prods = S.products.filter(p => p.actif && p.type !== 'Autres' && (stockOf(p.id) > 0 || p.seuil > 0));
+  const low = prods.filter(p => p.seuil > 0 && stockOf(p.id) <= p.seuil);
+  const W = 1080, cols = 3, tw = 312, th = 230, gap = 24, x0 = 48;
+  const rows = Math.ceil(prods.length / cols);
+  const H = 262 + 60 + 230 + 110 + rows * (th + gap) + (low.length ? 130 : 20) + 110;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
+  x.fillStyle = C.wall; x.fillRect(0, 0, W, H);
+  await header(x, W, 'Buvette BLFC', 'Niveaux au ' + fd(nowDT()) + ' · Saison ' + S.season);
+  // caisse
+  let y = 262 + 50;
+  x.fillStyle = C.blueD; rrect(x, x0, y, W - 2 * x0, 200, 28); x.fill();
+  x.fillStyle = C.red; rrect(x, x0, y + 188, W - 2 * x0, 12, 6); x.fill();
+  x.font = `64px ${EMO}`; x.fillText('💰', x0 + 40, y + 125);
+  x.fillStyle = '#C3CFF0'; x.font = `600 34px ${FB}`; x.fillText('Il reste en caisse', x0 + 142, y + 66);
+  x.fillStyle = '#fff'; x.font = `800 96px ${FC}`; x.fillText(eur(m.caisse), x0 + 138, y + 162);
+  y += 200 + 100;
+  x.fillStyle = C.ink; x.font = `800 48px ${FC}`; x.fillText('Ce qu’il reste à la buvette', x0, y); y += 34;
+  prods.forEach((p, k) => {
+    const cx = x0 + (k % cols) * (tw + gap), cy = y + Math.floor(k / cols) * (th + gap), q = stockOf(p.id), lo = p.seuil > 0 && q <= p.seuil;
+    x.fillStyle = lo ? '#FFF4F4' : '#fff'; rrect(x, cx, cy, tw, th, 26); x.fill();
+    x.strokeStyle = lo ? C.red : C.rule; x.lineWidth = lo ? 4 : 2; rrect(x, cx, cy, tw, th, 26); x.stroke();
+    x.font = `70px ${EMO}`; x.textAlign = 'right'; x.fillText(icone(p), cx + tw - 22, cy + 88); x.textAlign = 'left';
+    x.fillStyle = lo ? C.red : C.ink; x.font = `800 110px ${FC}`; x.fillText(String(q), cx + 26, cy + 128);
+    x.fillStyle = C.muted; x.font = `600 36px ${FB}`; x.fillText(fitText(x, p.name, tw - 52), cx + 28, cy + 192);
+  });
+  y += rows * (th + gap) + 10;
+  if (low.length) {
+    x.fillStyle = '#FFF4F4'; rrect(x, x0, y, W - 2 * x0, 96, 22); x.fill(); x.strokeStyle = '#F0C4C6'; x.lineWidth = 2; rrect(x, x0, y, W - 2 * x0, 96, 22); x.stroke();
+    x.fillStyle = C.red; x.font = `700 36px ${FB}`; x.fillText(fitText(x, '🛒 À racheter : ' + low.map(p => p.name).join(', '), W - 2 * x0 - 60), x0 + 30, y + 60);
+  }
+  footer(x, W, H, 'Buvette du Bellegarde Ladon FC · futsal');
+  return cv;
+}
+async function drawRatio() {
+  if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  const st = stats();
+  const list = bilan().filter(b => b.nb > 0).sort((a, b) => b.ratio - a.ratio || b.nb - a.nb || a.p.name.localeCompare(b.p.name, 'fr'));
+  const W = 1080, x0 = 48, rh = 92;
+  const H = 262 + 40 + 180 + 60 + 70 + list.length * rh + 150 + 80;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
+  x.fillStyle = C.wall; x.fillRect(0, 0, W, H);
+  await header(x, W, 'Ratio par joueur', 'Buvette BLFC · au ' + fd(nowDT()) + ' · ' + S.season);
+  let y = 262 + 40;
+  // objectif
+  const bw = (W - 2 * x0 - 24) / 2;
+  [[st.presMes ? eur(st.parGars) : '–', 'ratio minimum par joueur', C.red], [String(S.aperos.length), S.aperos.length > 1 ? 'apéros faits cette saison' : 'apéro fait cette saison', C.blueD]].forEach(([v, l, col], k) => {
+    const bx = x0 + k * (bw + 24);
+    x.fillStyle = col; rrect(x, bx, y, bw, 170, 26); x.fill();
+    x.fillStyle = '#fff'; x.font = `800 84px ${FC}`; x.fillText(v, bx + 34, y + 96);
+    x.fillStyle = 'rgba(255,255,255,.82)'; x.font = `600 28px ${FB}`; x.fillText(fitText(x, l, bw - 60), bx + 36, y + 142);
+  });
+  y += 170 + 50;
+  // tableau
+  x.fillStyle = '#fff'; rrect(x, x0, y, W - 2 * x0, 70 + list.length * rh + 16, 28); x.fill();
+  x.fillStyle = C.muted; x.font = `700 28px ${FB}`;
+  x.fillText('Joueur', x0 + 36, y + 50); x.textAlign = 'right'; x.fillText('Apéros', 640, y + 50); x.fillText('Donné', 820, y + 50); x.fillText('Ratio', W - x0 - 36, y + 50); x.textAlign = 'left';
+  y += 70;
+  list.forEach((b, k) => {
+    const ry = y + k * rh;
+    if (k % 2 === 0) { x.fillStyle = '#F5F7FC'; x.fillRect(x0 + 12, ry, W - 2 * x0 - 24, rh); }
+    x.fillStyle = C.ink; x.font = `700 38px ${FB}`; x.fillText(fitText(x, b.p.name, 460), x0 + 36, ry + 58);
+    x.fillStyle = C.muted; x.font = `600 36px ${FB}`; x.textAlign = 'right'; x.fillText(String(b.nb), 640, ry + 58); x.fillText(eur0(b.donne), 820, ry + 58);
+    const r = Math.round(b.ratio), pw = 150, px = W - x0 - 36 - pw;
+    x.fillStyle = b.ok ? C.okbg : C.redbg; rrect(x, px, ry + 14, pw, rh - 28, (rh - 28) / 2); x.fill();
+    x.fillStyle = b.ok ? C.ok : C.red; x.font = `800 48px ${FC}`; x.textAlign = 'center'; x.fillText((b.ok ? '✓ ' : '') + r, px + pw / 2, ry + 62); x.textAlign = 'left';
+  });
+  y += list.length * rh + 50;
+  x.fillStyle = C.muted; x.font = `500 28px ${FB}`;
+  x.fillText('Ratio = euros donnés (argent + apports) ÷ nombre d’apéros.', x0, y + 20);
+  x.fillText('Sous le ratio minimum, c’est rouge : pense à la cagnotte 😉', x0, y + 62);
+  footer(x, W, H, 'Buvette du Bellegarde Ladon FC · futsal');
+  return cv;
+}
+async function shareCanvas(cv, name, text) {
+  const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+  const file = new File([blob], name, { type: 'image/png' });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  U.shot = { url: cv.toDataURL('image/png'), name }; renderSheet();
+}
+
+/* ================= Actions ================= */
+function newDraft() { return { date: sessionDate(), qty: {}, total: '', caisse: true, comment: '', unknown: [], fromTicket: false, ticketTotal: null }; }
+const A = {
+  go: d => { U.sheet = null; if (d.s === 'invDetail') U.invEdit = null; if (d.s === 'achatDetail') U.achatEdit = null; if (d.s === 'inventaire' && !U.inv) { U.inv = {}; S.products.forEach(p => U.inv[p.id] = stockOf(p.id)); } go(d.s); },
+  retry: () => { if (errKind === 'load' || errKind === 'conflit') load(); else if (errKind) commit(); },
+  openApero: () => { const c = currentApero(); U.apId = c ? c.id : null; go('apero'); },
+  pickApero: d => { U.apId = d.id; go('apero'); },
+  addApPlayer: () => {
+    const n = (U.newApPlayer || '').trim(); if (!n) return toast('Écris le nom du joueur');
+    let p = S.players.find(x => norm(x.name) === norm(n));
+    const existed = !!p;
+    if (p) p.actif = true;
+    else { p = { id: uid(), name: n, actif: true, licence: false, paiement: false, chaussette: false }; S.players.push(p); }
+    let a = S.aperos.find(x => x.id === U.apId);
+    if (!a) { a = { id: uid(), dt: sessionDate() + 'T20:00', participants: [] }; S.aperos.push(a); U.apId = a.id; }
+    if (!a.participants.includes(p.id)) a.participants.push(p.id);
+    U.newApPlayer = '';
+    commit(existed ? p.name + ' existait déjà, ajouté aux présents' : p.name + ' créé et ajouté aux présents');
+  },
+  togP: d => {
+    let a = S.aperos.find(x => x.id === U.apId);
+    if (!a) { a = { id: uid(), dt: sessionDate() + 'T20:00', participants: [] }; S.aperos.push(a); U.apId = a.id; }
+    const i = a.participants.indexOf(d.id); i < 0 ? a.participants.push(d.id) : a.participants.splice(i, 1);
+    commit();
+  },
+  delApero: d => { S.aperos = S.aperos.filter(a => a.id !== d.id); S.versements = S.versements.filter(v => v.apId !== d.id); U.apId = null; go('home'); commit('Apéro supprimé'); },
+  give: d => { U.sheet = { playerId: d.id, apId: screen === 'apero' ? U.apId : null, nature: false, montant: '', pid: '', qty: 1 }; renderSheet(); },
+  closeSheet: () => { U.sheet = null; U.shot = null; renderSheet(); },
+  shMode: d => { U.sheet.nature = d.v === '1'; renderSheet(); },
+  shAmt: d => { U.sheet.montant = d.v; renderSheet(); },
+  shProd: d => { U.sheet.pid = d.id; renderSheet(); },
+  shSave: () => {
+    const sh = U.sheet, ap = S.aperos.find(x => x.id === sh.apId);
+    const dt = ap ? ap.dt : sessionDate() + 'T20:00';
+    if (sh.nature) {
+      const p = prod(sh.pid); if (!p) return toast('Choisis le produit apporté');
+      const qty = Math.max(1, Math.round(num(sh.qty)));
+      S.versements.push({ id: uid(), dt, apId: sh.apId, playerId: sh.playerId, nature: true, pid: p.id, qty, montant: r2((p.apport || p.prix) * qty) });
+    } else {
+      const m = num(sh.montant); if (m <= 0) return toast('Choisis un montant');
+      S.versements.push({ id: uid(), dt, apId: sh.apId, playerId: sh.playerId, nature: false, montant: r2(m) });
+    }
+    U.sheet = null; commit('Don enregistré');
+  },
+  delV: d => { S.versements = S.versements.filter(v => v.id !== d.id); commit('Don supprimé'); },
+  stp: d => { const k = d.p.split('.'); let o = U; while (k.length > 1) o = o[k.shift()]; const cur = num(o[k[0]]); o[k[0]] = Math.max(0, cur + +d.d); d.p.startsWith('sheet') ? renderSheet() : render(); },
+  openCourses: () => { if (!U.draft) U.draft = newDraft(); U.scan = ''; go('courses'); },
+  resetDraft: () => { U.draft = newDraft(); U.scan = ''; render(); },
+  saveCourses: () => {
+    const d = U.draft;
+    const lignes = Object.entries(d.qty).filter(([, q]) => q > 0).map(([pid, qty]) => ({ pid, qty: Math.round(qty) }));
+    d.unknown.forEach(u => { if (u.pid) { const p = prod(u.pid); const ex = lignes.find(l => l.pid === u.pid); const q = unitsFor(u.text, p, u.qty); ex ? ex.qty += q : lignes.push({ pid: u.pid, qty: q }); const al = u.text.replace(/\d+([.,]\d+)?\s*(CL|L|G|KG|X)?\b/g, '').replace(/\s+/g, ' ').trim(); if (al.length >= 4 && !p.alias.includes(al)) p.alias.push(al); } });
+    if (!lignes.length) return toast('Ajoute au moins un produit');
+    const dt = (d.date || sessionDate()) + 'T12:00';
+    S.achats.push({ id: uid(), dt, lignes, total: r2(num(d.total)), caisse: !!d.caisse, comment: d.comment.trim(), source: d.fromTicket ? 'ticket' : 'manuel' });
+    U.draft = newDraft(); U.scan = ''; commit('Courses enregistrées');
+  },
+  delAchat: d => { S.achats = S.achats.filter(a => a.id !== d.id); U.achatView = null; U.achatEdit = null; screen = 'courses'; commit('Courses supprimées'); },
+  viewAchat: d => { U.achatView = d.id; U.achatEdit = null; go('achatDetail'); },
+  editAchat: () => { const a = S.achats.find(x => x.id === U.achatView), q = {}; a.lignes.forEach(l => q[l.pid] = (q[l.pid] || 0) + l.qty); U.achatEdit = { date: a.dt.slice(0, 10), total: String(a.total).replace('.', ','), caisse: !!a.caisse, comment: a.comment || '', qty: q }; render(); window.scrollTo(0, 0); },
+  cancelAchatEdit: () => { U.achatEdit = null; render(); },
+  saveAchatEdit: () => {
+    const a = S.achats.find(x => x.id === U.achatView), e = U.achatEdit;
+    const lignes = Object.entries(e.qty).map(([pid, q]) => ({ pid, qty: Math.round(num(q)) })).filter(l => l.qty > 0);
+    if (!lignes.length) return toast('Il faut au moins un produit');
+    if (!e.date) return toast('Indique une date');
+    Object.assign(a, { dt: e.date + a.dt.slice(10), lignes, total: r2(num(e.total)), caisse: !!e.caisse, comment: e.comment.trim() });
+    U.achatEdit = null; commit('Courses modifiées');
+  },
+  openInv: () => { U.invDate = sessionDate(); U.inv = {}; S.products.forEach(p => U.inv[p.id] = stockOf(p.id)); go('inventaire'); },
+  saveInv: () => {
+    const counts = {}; S.products.forEach(p => { const q = Math.round(num(U.inv[p.id])); if (q) counts[p.id] = q; });
+    const dt = (U.invDate || sessionDate()) + 'T23:59';
+    const ex = S.inventaires.find(i => i.dt === dt);
+    if (ex) ex.counts = counts; else S.inventaires.push({ id: uid(), dt, counts });
+    U.inv = {}; S.products.forEach(p => U.inv[p.id] = stockOf(p.id));
+    commit('Inventaire enregistré');
+  },
+  viewInv: d => { U.invView = d.id; U.invEdit = null; go('invDetail'); },
+  editInv: () => { const inv = S.inventaires.find(i => i.id === U.invView); U.invEdit = { date: inv.dt.slice(0, 10), counts: { ...inv.counts } }; render(); window.scrollTo(0, 0); },
+  cancelInvEdit: () => { U.invEdit = null; render(); },
+  saveInvEdit: () => {
+    const inv = S.inventaires.find(i => i.id === U.invView), ed = U.invEdit;
+    if (!ed.date) return toast('Indique une date');
+    const dt = ed.date + inv.dt.slice(10);
+    if (S.inventaires.some(i => i.id !== inv.id && i.dt === dt)) return toast('Il y a déjà un inventaire à cette date');
+    const counts = {}; Object.entries(ed.counts).forEach(([k, q]) => { q = Math.round(num(q)); if (q) counts[k] = q; });
+    inv.dt = dt; inv.counts = counts; U.invEdit = null;
+    U.inv = {}; S.products.forEach(p => U.inv[p.id] = stockOf(p.id));
+    commit('Inventaire modifié');
+  },
+  delInv: d => { S.inventaires = S.inventaires.filter(i => i.id !== d.id); U.inv = {}; S.products.forEach(p => U.inv[p.id] = stockOf(p.id)); U.invView = null; U.invEdit = null; screen = 'inventaire'; commit('Inventaire supprimé'); },
+  dbTab: d => { U.dbTab = d.t; U.editP = null; U.editProd = null; render(); },
+  addPlayer: () => { const n = U.newPlayer.trim(); if (!n) return toast('Écris un nom'); S.players.push({ id: uid(), name: n, actif: true, licence: false, paiement: false, chaussette: false }); U.newPlayer = ''; commit('Joueur ajouté'); },
+  delPlayer: d => { const p = player(d.id); S.players = S.players.filter(x => x.id !== d.id); S.aperos.forEach(a => a.participants = a.participants.filter(id => id !== d.id)); S.versements = S.versements.filter(v => v.playerId !== d.id); U.editP = null; commit(p.name + ' supprimé'); },
+  togActif: d => { const p = player(d.id); p.actif = !p.actif; if (U.editP && U.editP.id === p.id) U.editP.actif = p.actif; commit(p.name + (p.actif ? ' réactivé' : ' désactivé')); },
+  editPlayer: d => { U.editP = { ...player(d.id) }; render(); },
+  togEP: d => { U.editP[d.k] = !U.editP[d.k]; render(); },
+  cancelEP: () => { U.editP = null; render(); },
+  savePlayer: () => { const e = U.editP; if (!e.name.trim()) return toast('Le nom est vide'); Object.assign(player(e.id), { ...e, name: e.name.trim() }); U.editP = null; commit('Joueur modifié'); },
+  newProd: () => { U.editProd = { id: null, name: '', type: 'Boissons', prix: '', seuil: '0', apport: '', lot: '1', alias: '', actif: true, icon: '' }; render(); },
+  editProd: d => { const p = prod(d.id); U.editProd = { icon: p.icon || icone(p), id: p.id, name: p.name, type: p.type, prix: String(p.prix).replace('.', ','), seuil: String(p.seuil || 0), apport: p.apport ? String(p.apport).replace('.', ',') : '', lot: String(p.lot || 1), alias: (p.alias || []).join(', '), actif: p.actif }; render(); window.scrollTo(0, 0); },
+  cancelProd: () => { U.editProd = null; render(); },
+  saveProd: () => {
+    const f = U.editProd; if (!f.name.trim()) return toast('Donne un nom au produit');
+    const p = { icon: String(f.icon || '').trim().slice(0, 8), id: f.id || uid(), name: f.name.trim(), type: f.type, prix: r2(num(f.prix)), seuil: Math.round(num(f.seuil)), apport: r2(num(f.apport)), lot: Math.max(1, Math.round(num(f.lot))), alias: f.alias.split(',').map(s => norm(s)).filter(Boolean), actif: !!f.actif };
+    const i = S.products.findIndex(x => x.id === p.id); i >= 0 ? S.products[i] = p : S.products.push(p);
+    U.editProd = null; commit('Produit enregistré');
+  },
+  togIcons: () => { S.ui = { ...(S.ui || {}), icons: !iconsOn() }; commit(iconsOn() ? 'Icônes activées' : 'Icônes désactivées'); },
+  shareStock: async () => { toast('Préparation de l’image…'); try { await shareCanvas(await drawStock(), 'buvette-niveaux.png', 'Niveaux de la buvette BLFC'); } catch (e) { toast('Image impossible : ' + (e.message || e)); } },
+  shareRatio: async () => { toast('Préparation de l’image…'); try { await shareCanvas(await drawRatio(), 'buvette-ratio.png', 'Ratio par joueur, buvette BLFC'); } catch (e) { toast('Image impossible : ' + (e.message || e)); } },
+  closeShot: () => { U.shot = null; renderSheet(); },
+  connectApi: async () => {
+    const url = (U.cfg.url || '').trim(), token = (U.cfg.token || '').trim();
+    if (!/^https:\/\/script\.google\.com\/.+\/exec\b/.test(url)) return toast('Colle l’adresse complète qui se termine par /exec');
+    if (!token) return toast('Indique le code secret');
+    const old = localStorage.getItem(CFG_KEY);
+    localStorage.setItem(CFG_KEY, JSON.stringify({ url, token }));
+    toast('Connexion…');
+    try { await api('ping'); }
+    catch (e) { old ? localStorage.setItem(CFG_KEY, old) : localStorage.removeItem(CFG_KEY); return toast('Connexion refusée : ' + (e.message || e)); }
+    MODE = 'api'; U.cfg = null; screen = 'home'; await load(); toast('Connecté à ton Google Sheet ✓');
+  },
+  skipSetup: () => { sessionStorage.setItem('buvette-test', '1'); screen = 'home'; load(); },
+  disconnectApi: () => { localStorage.removeItem(CFG_KEY); localStorage.removeItem(KEY + '-cache'); MODE = 'local'; screen = 'setup'; U.cfg = null; sessionStorage.removeItem('buvette-test'); load(); },
+  viewArch: d => { U.archView = d.id; go('archive'); },
+  delArch: d => { S.archives = S.archives.filter(a => a.id !== d.id); U.archView = null; screen = 'base'; U.dbTab = 'saison'; commit('Archive supprimée'); },
+  newArch: () => {
+    const used = S.archives.map(a => a.season); let sn = prevSeason(S.season); while (sn && used.includes(sn)) sn = prevSeason(sn);
+    U.arch = { id: null, season: sn, nbAperos: '', parApero: '', parGars: '', caisseFin: '', paste: '', rows: [...S.players].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })).map(p => ({ name: p.name, nb: '', donne: '', fixed: true })) };
+    go('archEdit');
+  },
+  editArch: () => {
+    const a = S.archives.find(x => x.id === U.archView), rows = a.players.map(x => ({ name: x.name, nb: String(x.nb), donne: String(x.donne).replace('.', ','), fixed: true }));
+    S.players.forEach(p => { if (!rows.some(r => norm(r.name) === norm(p.name))) rows.push({ name: p.name, nb: '', donne: '', fixed: true }); });
+    U.arch = { id: a.id, season: a.season, nbAperos: String(a.nbAperos), parApero: String(a.parApero).replace('.', ','), parGars: String(a.parGars).replace('.', ','), caisseFin: a.caisseFin == null ? '' : String(a.caisseFin).replace('.', ','), paste: '', rows };
+    go('archEdit');
+  },
+  archRow: () => { U.arch.rows.push({ name: '', nb: '', donne: '', fixed: false }); render(); },
+  archPaste: () => {
+    const got = parsePaste(U.arch.paste); if (!got.length) return toast('Rien de reconnu : il faut Nom, Apéros, Donné par ligne');
+    got.forEach(g => { const r = U.arch.rows.find(x => norm(x.name) === norm(g.name)); if (r) { r.nb = String(g.nb); r.donne = String(g.donne).replace('.', ','); } else U.arch.rows.push({ name: g.name, nb: String(g.nb), donne: String(g.donne).replace('.', ','), fixed: false }); });
+    U.arch.paste = ''; render(); toast(got.length + ' ligne' + (got.length > 1 ? 's' : '') + ' reprise' + (got.length > 1 ? 's' : ''));
+  },
+  saveArch: () => {
+    const f = U.arch; if (!f.season.trim()) return toast('Indique la saison');
+    if (S.archives.some(a => a.season === f.season.trim() && a.id !== f.id) || (f.season.trim() === S.season)) return toast('Cette saison existe déjà');
+    const players = f.rows.filter(r => r.name.trim() && (num(r.nb) > 0 || num(r.donne) > 0)).map(r => ({ name: r.name.trim(), nb: Math.round(num(r.nb)), donne: r2(num(r.donne)) }));
+    const nbA = Math.round(num(f.nbAperos)), pres = players.reduce((s, x) => s + x.nb, 0);
+    let pa = num(f.parApero), pg = num(f.parGars);
+    if (!pg && pa && nbA && pres) pg = pa * nbA / pres;
+    if (!pa && pg && nbA && pres) pa = pg * pres / nbA;
+    const a = { id: f.id || uid(), season: f.season.trim(), date: sessionDate(), source: 'manuel', nbAperos: nbA, parApero: r2(pa), parGars: r2(pg), valeur: r2(pa * nbA), caisseFin: f.caisseFin === '' ? null : r2(num(f.caisseFin)), donneTotal: r2(players.reduce((s, x) => s + x.donne, 0)), courses: null, players, conso: [] };
+    const i = S.archives.findIndex(x => x.id === a.id); i >= 0 ? S.archives[i] = a : S.archives.push(a);
+    U.arch = null; U.archView = a.id; screen = 'archive'; commit('Bilan ' + a.season + ' enregistré');
+  },
+  newSeason: () => {
+    const m = money(), counts = {};
+    S.archives.push(snapshotSeason());
+    S.products.forEach(p => { const q = stockOf(p.id); if (q) counts[p.id] = q; });
+    S.inventaires = [{ id: uid(), dt: sessionDate() + 'T23:59', counts, note: 'Reste de la saison passée' }];
+    S.resteN1 = r2(m.caisse); S.aperos = []; S.achats = []; S.versements = [];
+    S.players.forEach(p => { p.licence = p.paiement = p.chaussette = false; });
+    const old = S.season; S.season = nextSeason(S.season);
+    commit('Saison ' + old + ' archivée, bonne saison ' + S.season);
+  },
+  export: () => { U.io = JSON.stringify(S); render(); const t = document.querySelector('textarea.json'); t.focus(); t.select(); toast('Sélectionne et copie le texte'); },
+  import: () => { try { const d = migrate(JSON.parse(U.io)); if (!d) throw 0; d.rev = S.rev; S = d; U.io = ''; commit('Sauvegarde importée'); } catch (e) { toast('Texte invalide, rien n’a été importé'); } },
+  reseed: () => { const rev = S.rev; S = seed(); S.rev = rev; commit('Données de départ rechargées'); }
+};
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-a]'); if (!b || b.tagName === 'INPUT') return;
+  if (b.dataset.arm && !b.classList.contains('arm')) {
+    const old = b.innerHTML; b.classList.add('arm'); b.textContent = 'Confirmer ?';
+    setTimeout(() => { if (document.body.contains(b)) { b.classList.remove('arm'); b.innerHTML = old; } }, 3000);
+    return;
+  }
+  const fn = A[b.dataset.a]; if (fn) fn(b.dataset, b);
+});
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.dataset.f) {
+    const v = t.type === 'checkbox' ? t.checked : t.value;
+    setPath(t.dataset.f, /^(draft\.qty|inv|sheet\.qty|invEdit\.counts|achatEdit\.qty)\./.test(t.dataset.f) ? num(v) : v);
+    if (t.dataset.f === 'sheet.montant') { const q = document.querySelectorAll('.quick button'); q.forEach(x => x.classList.toggle('on', num(x.dataset.v) === num(v))); const s = document.querySelector('[data-a=shSave]'); if (s) s.textContent = num(v) > 0 ? 'Valider ' + eur0(num(v)) : 'Valider'; }
+    if (t.dataset.f === 'draft.total') { const b = document.querySelector('.total b'); if (b) b.textContent = eur(num(v)); }
+  }
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.s) { S[t.dataset.s] = t.dataset.s === 'resteN1' ? r2(num(t.value)) : t.value; commit(); }
+  if (t.dataset.ap) { const a = S.aperos.find(x => x.id === U.apId); if (a && t.value) { a.dt = t.value + 'T20:00'; S.versements.forEach(v => { if (v.apId === a.id) v.dt = a.dt; }); commit(); } }
+  if (t.dataset.unk != null) { const u = U.draft.unknown[+t.dataset.unk]; const was = u.pid; u.pid = t.value; const tot = num(U.draft.total) + (u.pid && !was ? u.price : !u.pid && was ? -u.price : 0); U.draft.total = String(r2(tot)).replace('.', ','); render(); }
+  if (t.dataset.a === 'scanFile' && t.files[0]) { const f = t.files[0]; t.value = ''; scan(f); }
+  if (/^(draft\.qty|inv|invEdit\.counts|achatEdit\.qty)\./.test(t.dataset.f || '')) render();
+});
+
+if (HOSTED && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+load();
+</script>
+</body>
+</html>
