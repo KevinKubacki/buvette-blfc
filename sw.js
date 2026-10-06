@@ -1,6 +1,6 @@
-// Buvette BLFC : garde l'appli disponible même avec un réseau faible.
+// Buvette BLFC (V3) : ouverture instantanée depuis la copie locale, mise à jour en arrière-plan.
 // Les données, elles, restent dans le Google Sheet.
-const CACHE = 'buvette-blfc-v2';
+const CACHE = 'buvette-blfc-v3';
 const SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
@@ -13,9 +13,11 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return; // Google Sheet, polices, etc. : pas touché
   if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('config.js')) {
-    // toujours la dernière version en ligne, la copie locale si pas de réseau
-    e.respondWith(fetch(e.request).then(r => { const c = r.clone(); const k = url.pathname.endsWith('config.js') ? 'config.js' : 'index.html'; caches.open(CACHE).then(x => x.put(k, c)); return r; })
-      .catch(() => caches.match(url.pathname.endsWith('config.js') ? 'config.js' : 'index.html')));
+    // copie locale tout de suite (ouverture instantanée), nouvelle version récupérée en arrière-plan
+    const k = url.pathname.endsWith('config.js') ? 'config.js' : 'index.html';
+    const net = fetch(e.request, { cache: 'no-cache' }).then(r => { if (r.ok) { const c = r.clone(); caches.open(CACHE).then(x => x.put(k, c)); } return r; });
+    e.respondWith(caches.match(k).then(c => c || net).catch(() => net));
+    e.waitUntil(net.catch(() => {}));
     return;
   }
   e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));

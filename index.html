@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUVETTE BLFC · index.html · version V2 du 06/10/2026
+<!-- BUVETTE BLFC · index.html · version V3 du 06/10/2026
      1) GitHub : fichier « index.html » du dépôt buvette-blfc (l'appli installable).
      2) Apps Script : même contenu dans le fichier « Index » (accès de secours via /exec?cle=CODE).
      Contexte et fiche de référence : CLAUDE.md (zip buvette-blfc-complet) -->
@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
 :root{
   --wall:#E8EDF6; --card:#FFFFFF; --ink:#0B1A3F; --muted:#56648A; --rule:#D0D8E8; --soft:#F3F6FC;
@@ -360,7 +360,7 @@ function setStatus(k, msg) {
 }
 function commit(msg) { render(); if (msg) toast(msg); dirty = true; setStatus('pending'); clearTimeout(saveT); saveT = setTimeout(save, 600); }
 async function save() {
-  if (saving) { saveT = setTimeout(save, 400); return; }
+  if (saving || syncing) { saveT = setTimeout(save, 400); return; }
   saving = true; dirty = false; errKind = null;
   try {
     const payload = JSON.stringify(S);
@@ -369,27 +369,41 @@ async function save() {
     setStatus(dirty ? 'pending' : 'ok');
   } catch (e) {
     const conflit = /CONFLIT/.test(String(e && e.message || e));
-    errKind = conflit ? 'conflit' : 'err';
+    errKind = conflit ? 'conflit' : 'err'; if (!conflit) toast(niceErr(e));
     setStatus('err', conflit ? 'Modifié ailleurs, toucher pour recharger' : null);
   }
   saving = false;
 }
+let syncing = false;
+function niceErr(e) {
+  const m = String(e && e.message || e);
+  if (/fetch|NetworkError|Load failed/i.test(m)) return navigator.onLine === false ? 'Pas de réseau' : 'Google Sheet injoignable (déploiement en accès « Tout le monde » ?)';
+  return m;
+}
 async function load() {
   document.getElementById('status').textContent = 'Chargement…';
-  let raw = null;
   if (MODE === 'local' && HOSTED) { S = seed(); screen = 'setup'; render(); setStatus('err', 'Non configurée'); return; }
-  try { raw = await backend.load(); if (MODE === 'api' && raw) try { localStorage.setItem(KEY + '-cache', raw); } catch (e) {} }
+  // Appli installée : affiche tout de suite la dernière copie, puis met à jour depuis le Sheet
+  const cache = MODE === 'api' && localStorage.getItem(KEY + '-cache');
+  const shown = cache ? migrate(JSON.parse(cache)) : null;
+  if (shown) { S = shown; render(); document.getElementById('status').textContent = 'Mise à jour…'; }
+  let raw = null; syncing = true;
+  try { raw = await backend.load(); }
   catch (e) {
-    const cache = MODE === 'api' && localStorage.getItem(KEY + '-cache');
-    if (cache) { S = migrate(JSON.parse(cache)); if (S) { render(); errKind = 'load'; setStatus('err', 'Hors ligne, toucher pour réessayer'); return; } }
-    setStatus('err', 'Chargement impossible, toucher pour réessayer'); errKind = 'load'; toast(String(e && e.message || e)); return;
+    syncing = false;
+    if (shown) { errKind = 'load'; setStatus('err', 'Hors ligne, toucher pour réessayer'); return; }
+    setStatus('err', 'Chargement impossible, toucher pour réessayer'); errKind = 'load'; toast(niceErr(e)); return;
   }
-  S = raw ? migrate(JSON.parse(raw)) : null;
-  if (raw && !S) { // des données existent mais dans un format inattendu : on ne touche à rien
-    S = seed(); screen = 'home'; errKind = 'load'; setStatus('err', 'Données illisibles, rien n’a été modifié');
+  syncing = false;
+  const fromSheet = raw ? migrate(JSON.parse(raw)) : null;
+  if (raw && !fromSheet) { // données dans un format inattendu : on ne touche à rien
+    if (!S) S = seed(); errKind = 'load'; setStatus('err', 'Données illisibles, rien n’a été modifié');
     toast('Les données du Google Sheet n’ont pas pu être lues. Rien n’a été écrasé.'); saving = true; render(); return;
   }
-  const fresh = !S; if (fresh) S = seed();
+  if (MODE === 'api' && raw) try { localStorage.setItem(KEY + '-cache', raw); } catch (e) {}
+  if (shown && fromSheet && fromSheet.rev === shown.rev) { if (!dirty) setStatus('ok'); return; } // copie déjà à jour
+  if (shown && dirty) { clearTimeout(saveT); dirty = false; toast('Données mises à jour depuis le Sheet : refais ta dernière saisie.'); }
+  const fresh = !fromSheet; S = fresh ? seed() : fromSheet;
   render();
   if (fresh) commit(); else setStatus('ok');
 }
