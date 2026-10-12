@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUVETTE BLFC · index.html · version V5 du 12/10/2026
+<!-- BUVETTE BLFC · index.html · version V6 du 12/10/2026
      1) GitHub : fichier « index.html » du dépôt buvette-blfc (l'appli installable).
      2) Apps Script : même contenu dans le fichier « Index » (accès de secours via /exec?cle=CODE).
      Contexte et fiche de référence : CLAUDE.md (zip buvette-blfc-complet) -->
@@ -783,7 +783,8 @@ function renderSheet() {
   const p = player(sh.playerId), top = panel.scrollTop, prods = sheetProds();
   Object.keys(sh.qty).forEach(k => { const x = prod(k); if (x && !prods.includes(x)) prods.push(x); });
   panel.innerHTML = `
-  <h3>${sh.edit ? 'Modifier les dons de ' + esc(p.name) + '<div class="muted" style="font:500 .9rem Barlow,sans-serif">' + fday(sh.dt) + '</div>' : esc(p.name) + ' donne…'}</h3>
+  <h3>${sh.edit ? 'Modifier les dons de ' + esc(p.name) : esc(p.name) + ' donne…'}</h3>
+  <label class="f">Date du don<input type="date" data-f="sheet.date" value="${sh.date || sessionDate()}" max="${sessionDate()}"></label>
   <div class="sgroup">💶 De l’argent</div>
   <div class="quick">${[2, 5, 10, 20].map(n => `<button class="${num(sh.montant) === n ? 'on' : ''}" data-a="shAmt" data-v="${n}">${n} €</button>`).join('')}</div>
   <label class="f">Autre montant (€)<input inputmode="decimal" data-f="sheet.montant" value="${esc(sh.montant)}" placeholder="0,00"></label>
@@ -1157,17 +1158,21 @@ const A = {
     commit();
   },
   delApero: d => { S.aperos = S.aperos.filter(a => a.id !== d.id); S.versements = S.versements.filter(v => v.apId !== d.id); U.apId = null; go('home'); commit('Apéro supprimé'); },
-  give: d => { const c = currentApero(); U.sheet = { playerId: d.id, apId: screen === 'apero' ? U.apId : (c && c.participants.includes(d.id) ? c.id : null), montant: '', qty: {} }; const pn = document.getElementById('panel'); if (pn) pn.scrollTop = 0; renderSheet(); },
+  give: d => { const c = currentApero(); const apId = screen === 'apero' ? U.apId : (c && c.participants.includes(d.id) ? c.id : null), ap = S.aperos.find(x => x.id === apId); U.sheet = { playerId: d.id, apId, date: ap ? ap.dt.slice(0, 10) : sessionDate(), montant: '', qty: {} }; const pn = document.getElementById('panel'); if (pn) pn.scrollTop = 0; renderSheet(); },
   closeSheet: () => { U.sheet = null; U.shot = null; renderSheet(); },
   shAmt: d => { U.sheet.montant = num(U.sheet.montant) === num(d.v) ? '' : d.v; renderSheet(); },
   shSave: () => {
-    const sh = U.sheet, ap = S.aperos.find(x => x.id === sh.apId), s = sheetSum();
+    const sh = U.sheet, s = sheetSum(), date = sh.date || sessionDate();
     if (!sh.edit && s.m <= 0 && !s.n) return toast('Choisis un montant ou des produits');
+    if (date > sessionDate()) return toast('La date ne peut pas être dans le futur');
+    // rattaché à l'apéro de cette date (celui d'où on vient, sinon celui où le joueur était présent), sinon « hors apéro »
+    const ap = S.aperos.find(x => x.id === sh.apId && x.dt.slice(0, 10) === date) || S.aperos.find(x => x.dt.slice(0, 10) === date && x.participants.includes(sh.playerId));
     if (sh.edit) S.versements = S.versements.filter(v => !sh.edit.includes(v.id)); // on remplace l'ensemble des dons modifiés
-    const dt = sh.dt || (ap ? ap.dt : sessionDate() + 'T20:00'), base = { dt, apId: ap ? ap.id : null, playerId: sh.playerId };
+    const dt = ap ? ap.dt : date + 'T20:00', base = { dt, apId: ap ? ap.id : null, playerId: sh.playerId };
     if (s.m > 0) S.versements.push({ id: uid(), ...base, nature: false, montant: r2(s.m) });
     Object.entries(sh.qty).forEach(([k, q]) => { q = Math.round(num(q)); const p = prod(k); if (p && q > 0) S.versements.push({ id: uid(), ...base, nature: true, pid: p.id, qty: q, montant: r2(unitVal(p) * q) }); });
-    const msg = sh.edit ? (s.m > 0 || s.n ? 'Dons modifiés' : 'Dons supprimés') : sheetLabel().replace(/^Valider/, 'Don enregistré :');
+    const quand = date === sessionDate() ? '' : ' (le ' + fd(date + 'T12:00').slice(0, 5) + ')';
+    const msg = sh.edit ? (s.m > 0 || s.n ? 'Dons modifiés' + quand : 'Dons supprimés') : sheetLabel().replace(/^Valider/, 'Don enregistré :') + quand;
     U.sheet = null; commit(msg);
   },
   editDons: d => {
@@ -1175,7 +1180,7 @@ const A = {
     if (!vs.length) return;
     const m = vs.filter(v => !v.nature).reduce((t, v) => t + v.montant, 0), qty = {};
     vs.filter(v => v.nature).forEach(v => qty[v.pid] = (qty[v.pid] || 0) + v.qty);
-    U.sheet = { playerId: vs[0].playerId, apId: vs[0].apId, dt: vs[0].dt, montant: m ? String(r2(m)).replace('.', ',') : '', qty, edit: vs.map(v => v.id) };
+    U.sheet = { playerId: vs[0].playerId, apId: vs[0].apId, date: vs[0].dt.slice(0, 10), montant: m ? String(r2(m)).replace('.', ',') : '', qty, edit: vs.map(v => v.id) };
     const pn = document.getElementById('panel'); if (pn) pn.scrollTop = 0; renderSheet();
   },
   viewPlayer: d => { if (screen !== 'joueur') U.pBack = screen; U.pView = d.id; U.pTab = 'hist'; U.editP = null; U.sheet = null; go('joueur'); },
