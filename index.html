@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUVETTE BLFC · index.html · version V3 du 06/10/2026
+<!-- BUVETTE BLFC · index.html · version V4 du 12/10/2026
      1) GitHub : fichier « index.html » du dépôt buvette-blfc (l'appli installable).
      2) Apps Script : même contenu dans le fichier « Index » (accès de secours via /exec?cle=CODE).
      Contexte et fiche de référence : CLAUDE.md (zip buvette-blfc-complet) -->
@@ -59,6 +59,13 @@ h2{font:800 1.3rem/1.1 var(--cond);margin:20px 2px 10px}
 .tile b{display:block;font:800 1.8rem/1 var(--cond);font-variant-numeric:tabular-nums}
 .tile span{display:block;font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tile{position:relative}
+.link{color:var(--blue);cursor:pointer}
+.sgroup{font:700 1.02rem/1 var(--cond);color:var(--blue);margin:14px 2px 8px}
+.sheetfoot{position:sticky;bottom:-18px;background:#fff;padding:12px 0 6px;margin-top:8px;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--rule)}
+.hist{padding:9px 0;border-bottom:1px solid #EEF1F7}.hist:last-child{border-bottom:0}
+.hdate{font:700 1.02rem/1.2 var(--cond);color:var(--blue);margin-bottom:4px}
+.hrow{display:flex;align-items:center;gap:8px;padding:3px 0 3px 4px}
+.ocrtext{width:100%;min-height:160px;font:12px/1.35 Consolas,monospace;border:1px solid var(--rule);border-radius:10px;padding:8px;margin-top:8px}
 .h2row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .h2row h2{margin-right:auto}
 .wa{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:99px;background:#25D366;color:#fff;font-weight:700;font-size:.85rem;padding:8px 13px;margin-top:10px;flex:none}
@@ -216,7 +223,7 @@ function seed() {
   // [type, nom, prix moyen, seuil alerte, valeur si apporté, unités par lot, mots-clés ticket]
   const P = [
     ['Boissons', 'bières', 0.72, 12, 0, 1, 'HEINEKEN,BIERE,KRONENBOURG,1664,LEFFE,DESPERADOS'],
-    ['Boissons', 'bières 0%', 0.81, 0, 0, 1, '1664 0.0,1664 0,0,HEINEKEN 0.0,HEINEKEN 0,0,SANS ALCOOL,0.0%'],
+    ['Boissons', 'bières 0%', 0.81, 0, 0, 1, '1664 0.0,1664 0,HEINEKEN 0.0,HEINEKEN 0,SANS ALCOOL,0.0%'],
     ['Boissons', 'coca', 2.15, 2, 0, 1, 'COCA'],
     ['Boissons', 'oasis', 2.43, 1, 0, 1, 'OASIS'],
     ['Boissons', 'whisky', 21.50, 0, 15, 1, 'WHISK,JACK DANIEL,CLAN CAMPBELL,WILLIAM PEEL'],
@@ -267,6 +274,7 @@ function seed() {
 function migrate(s) {
   if (s.v !== 2) return null;
   ['products', 'players', 'inventaires', 'achats', 'versements', 'aperos', 'archives'].forEach(k => s[k] = s[k] || []);
+  s.products.forEach(p => { p.alias = (p.alias || []).filter(a => norm(a).length >= 3); }); // mots-clés trop courts (« 0 ») : faux positifs
   return s;
 }
 
@@ -481,7 +489,7 @@ V.apero = () => {
   <div class="pgrid">${list.map(p => { const on = present.includes(p.id); return `<button class="pbtn ${on ? 'on' : ''}" data-a="togP" data-id="${p.id}"><i>${on ? '✓' : ''}</i>${esc(p.name)}</button>`; }).join('')}</div>
   <div class="card" style="margin-top:10px;display:flex;gap:8px;align-items:center"><input class="grow" style="padding:11px;border:1px solid var(--rule);border-radius:10px;background:var(--soft)" placeholder="Nouveau : Prénom Nom" data-f="newApPlayer" value="${esc(U.newApPlayer || '')}"><button class="btn" data-a="addApPlayer">+ Ajouter</button></div>
   ${a ? `<h2>Qui a donné quoi</h2>
-  <div class="card">${givers.length ? givers.map(p => { const mine = vs.filter(v => v.playerId === p.id); return `<div class="line"><div class="grow"><div class="name">${esc(p.name)}</div>${mine.map(v => `<button class="chip x" data-a="delV" data-id="${v.id}" data-arm="1" title="Supprimer">${vLabel(v)} ✕</button>`).join('')}</div><button class="btn small ${mine.length ? 'ghost' : ''}" data-a="give" data-id="${p.id}">+ Donner</button></div>`; }).join('') : '<div class="empty">Coche les présents pour noter ce qu’ils donnent.</div>'}</div>
+  <div class="card">${givers.length ? givers.map(p => { const mine = vs.filter(v => v.playerId === p.id); return `<div class="line"><div class="grow"><div class="name link" data-a="viewPlayer" data-id="${p.id}">${esc(p.name)} ›</div>${mine.map(v => `<button class="chip x" data-a="delV" data-id="${v.id}" data-arm="1" title="Supprimer">${vLabel(v)} ✕</button>`).join('')}</div><button class="btn small ${mine.length ? 'ghost' : ''}" data-a="give" data-id="${p.id}">+ Donner</button></div>`; }).join('') : '<div class="empty">Coche les présents pour noter ce qu’ils donnent.</div>'}</div>
   <div class="btns"><button class="btn wide" data-a="go" data-s="home">Terminer</button>${armBtn('delApero', a.id, 'Supprimer cet apéro', 'btn danger wide')}</div>` : ''}
   ${prev.length ? `<details style="margin-top:14px"><summary>Apéros précédents</summary><div class="card">${prev.map(x => `<div class="line"><div class="grow"><div class="name">${fday(x.dt)}</div><div class="muted">${x.participants.length} présents</div></div><button class="btn small ghost" data-a="pickApero" data-id="${x.id}">Ouvrir</button></div>`).join('')}</div></details>` : ''}
   ${a ? '' : '<div class="btns" style="margin-top:14px"><button class="btn ghost wide" data-a="go" data-s="home">Annuler</button></div>'}`;
@@ -494,8 +502,9 @@ V.courses = () => {
   const groups = byType();
   const nbArt = Object.values(d.qty).reduce((s, q) => s + (q || 0), 0);
   return topbar('Courses', 'Ce que tu as acheté pour la buvette') + `
-  <label class="drop">📷 Scanner un ticket de caisse<small>Photo du ticket ou PDF, les produits sont pré-remplis</small><input type="file" accept="image/*,application/pdf" data-a="scanFile"></label>
-  ${U.scan ? `<p class="muted" style="text-align:center">${esc(U.scan)}</p>` : ''}
+  <label class="drop">📷 Scanner un ticket de caisse<small>Photo du ticket entier, à plat, de près et bien éclairé — ou le PDF</small><input type="file" accept="image/*,application/pdf" data-a="scanFile"></label>
+  ${U.scan ? `<p class="muted" id="scanmsg" style="text-align:center">${esc(U.scan)}</p>` : ''}
+  ${U.scanText ? `<details class="card" ${U.draft && U.draft.fromTicket && !Object.keys(U.draft.qty).length ? 'open' : ''}><summary>Texte lu sur le ticket</summary><textarea class="ocrtext" readonly>${esc(U.scanText)}</textarea><button class="btn small ghost" style="margin-top:8px" data-a="copyScan">Copier le texte</button></details>` : ''}
   <h2>${d.fromTicket ? 'Vérifie les courses' : 'Nouvelles courses'}</h2>
   <div class="card">
     <div class="two">
@@ -621,6 +630,35 @@ V.setup = () => `<section class="hero"><div class="id"><img src="${LOGO}" alt="L
   <div class="card" style="margin-top:16px"><p style="margin-top:0"><b>L’adresse du Google Sheet n’est pas encore renseignée.</b></p>
   <p class="muted">Sur GitHub, ouvre le fichier <b>config.js</b>, clique sur le crayon, colle l’adresse de ton script (celle qui finit par <b>/exec</b>) entre les apostrophes de <code>apiUrl</code>, puis « Commit changes ». Rouvre l’appli une minute plus tard.</p></div>`;
 
+V.joueur = () => {
+  const p = player(U.pView);
+  if (!p) { screen = 'home'; return V.home(); }
+  const st = stats(), b = bilan().find(x => x.p.id === p.id) || { nb: 0, donne: 0, ratio: null, ok: null };
+  const vs = S.versements.filter(v => v.playerId === p.id);
+  const argent = vs.filter(v => !v.nature).reduce((t, v) => t + v.montant, 0);
+  const ramene = {}; vs.filter(v => v.nature).forEach(v => ramene[v.pid] = (ramene[v.pid] || 0) + v.qty);
+  const days = {}, day = k => days[k] || (days[k] = { ap: false, vs: [] });
+  S.aperos.filter(a => a.participants.includes(p.id)).forEach(a => { day(a.dt.slice(0, 10)).ap = true; });
+  vs.forEach(v => day(v.dt.slice(0, 10)).vs.push(v));
+  const keys = Object.keys(days).sort(); if (U.pRecent) keys.reverse();
+  const back = U.pBack || 'home', lbl = { apero: 'Apéro', bilan: 'Bilan', base: 'Base' }[back] || 'Accueil';
+  const pname = v => (prod(v.pid) || {}).name || '?';
+  return topbar(esc(p.name), p.actif ? 'Ce qu’il a donné, date par date' : 'Joueur inactif', back, lbl) + `
+  <div class="stats">
+    <div class="stat"><b>${b.nb}</b><span>apéro${b.nb > 1 ? 's' : ''} cette saison</span></div>
+    <div class="stat"><b class="${b.ok == null ? '' : b.ok ? 'pos' : 'neg'}">${b.ratio == null ? '–' : eur(b.ratio)}</b><span>donné par apéro (minimum ${st.presMes ? eur(st.parGars) : '–'})</span></div>
+    <div class="stat"><b>${eur0(argent)}</b><span>donné en argent</span></div>
+    <div class="stat"><b>${eur0(b.donne - argent)}</b><span>en produits ramenés</span></div>
+  </div>
+  ${Object.keys(ramene).length ? `<div class="card"><div class="muted" style="font-weight:600;margin-bottom:4px">A ramené au total</div>${Object.entries(ramene).map(([k, q]) => `<span class="chip">${iconsOn() ? icone(prod(k) || {}) + ' ' : ''}${q} ${esc((prod(k) || {}).name || '?')}</span>`).join('')}</div>` : ''}
+  <button class="btn red wide" data-a="give" data-id="${p.id}">+ Noter un don</button>
+  <div class="h2row"><h2>Historique</h2><button class="tgl" data-a="pOrder">${U.pRecent ? '↓ Plus récent d’abord' : '↓ Plus ancien d’abord'}</button></div>
+  <div class="card">${keys.length ? keys.map(k => { const d = days[k]; return `<div class="hist"><div class="hdate">${fday(k + 'T12:00')}</div>
+    ${d.ap ? '<div class="hrow muted">🍻 Présent à l’apéro</div>' : '<div class="hrow muted">Don hors apéro</div>'}
+    ${d.vs.map(v => `<div class="hrow"><span class="grow">${v.nature ? (iconsOn() ? icone(prod(v.pid) || {}) + ' ' : '') + v.qty + ' ' + esc(pname(v)) + ' <span class="muted">(' + eur0(v.montant) + ')</span>' : '💶 ' + eur0(v.montant) + ' en argent'}</span>${armBtn('delV', v.id, '✕')}</div>`).join('')}
+    ${d.ap && !d.vs.length ? '<div class="hrow muted" style="font-size:.85rem">Rien donné ce jour-là</div>' : ''}</div>`; }).join('') : '<div class="empty">Rien pour l’instant cette saison.</div>'}</div>`;
+};
+
 V.bilan = () => {
   const st = stats(), m = money();
   const b = bilan().filter(x => x.p.actif || x.nb || x.donne).sort((x, y) => (x.ratio ?? 1e9) - (y.ratio ?? 1e9) || y.nb - x.nb);
@@ -636,9 +674,9 @@ V.bilan = () => {
   </div>
   <div class="h2row"><h2>Ratio par joueur</h2><button class="wa" data-a="shareRatio">${WA_ICON}WhatsApp</button></div>
   <div class="card scroll"><p class="muted" style="margin-top:0">Objectif : au moins <b>${st.presMes ? eur(st.parGars) : '–'}</b> par apéro (coût moyen par gars).</p><table><thead><tr><th>Joueur</th><th>Apéros</th><th>Donné</th><th>Ratio</th></tr></thead><tbody>
-  ${b.map(x => `<tr class="click" data-a="give" data-id="${x.p.id}"><td>${esc(x.p.name)}</td><td>${x.nb}</td><td>${eur0(x.donne)}</td><td class="num ${cls(x)}" style="font:800 1.2rem var(--cond)">${x.ratio == null ? '–' : Math.round(x.ratio)}</td></tr>`).join('')}
+  ${b.map(x => `<tr class="click" data-a="viewPlayer" data-id="${x.p.id}"><td>${esc(x.p.name)}</td><td>${x.nb}</td><td>${eur0(x.donne)}</td><td class="num ${cls(x)}" style="font:800 1.2rem var(--cond)">${x.ratio == null ? '–' : Math.round(x.ratio)}</td></tr>`).join('')}
   </tbody></table>
-  <p class="muted">Ratio = ce que le joueur a donné (argent + apports) ÷ son nombre d’apéros, arrondi. En vert s’il couvre le coût moyen par gars, en rouge sinon. Touche une ligne pour noter un don en dehors d’un apéro.</p></div>
+  <p class="muted">Ratio = ce que le joueur a donné (argent + apports) ÷ son nombre d’apéros, arrondi. En vert s’il couvre le coût moyen par gars, en rouge sinon. Touche un joueur pour voir tout ce qu’il a donné, date par date, et noter un don.</p></div>
   <h2>Consommé depuis le début de saison</h2>
   <div class="card">${Object.keys(st.conso).length ? S.products.filter(p => st.conso[p.id]).map(p => `<div class="line"><div class="grow name">${esc(p.name)}</div><span class="muted">${st.conso[p.id]} × ${eur(p.prix)}</span><span class="num">${eur(st.conso[p.id] * p.prix)}</span></div>`).join('') : '<div class="empty">Fais un inventaire après un apéro pour mesurer la consommation.</div>'}</div>
   ${S.archives.length ? `<h2>Saisons précédentes</h2><div class="card">${archSorted().map(x => `<div class="line"><div class="grow"><div class="name">Saison ${esc(x.season)}</div><div class="muted">${x.nbAperos} apéros, ${eur(x.parGars)} par gars</div></div><button class="btn small ghost" data-a="viewArch" data-id="${x.id}">Voir</button></div>`).join('')}</div>` : ''}`;
@@ -653,7 +691,7 @@ V.base = () => {
       <div style="padding:8px 0;border-bottom:1px solid #EEF1F7"><label class="f">Nom<input data-f="editP.name" value="${esc(U.editP.name)}"></label>
       <div class="btns" style="margin-bottom:10px">${['actif', 'licence', 'paiement', 'chaussette'].map(k => `<button class="btn small ${U.editP[k] ? '' : 'ghost'}" data-a="togEP" data-k="${k}">${U.editP[k] ? '✓ ' : ''}${{ actif: 'Actif', licence: 'Licence', paiement: 'Cotisation payée', chaussette: 'Chaussettes' }[k]}</button>`).join('')}</div>
       <div class="btns"><button class="btn" data-a="savePlayer">Enregistrer</button><button class="btn ghost" data-a="cancelEP">Annuler</button>${(() => { const n = S.aperos.filter(a => a.participants.includes(p.id)).length, v = S.versements.filter(x => x.playerId === p.id).length; return armBtn('delPlayer', p.id, 'Supprimer', 'btn danger') + (n || v ? `<div class="muted" style="width:100%">Supprimer efface aussi ${n} présence${n > 1 ? 's' : ''} et ${v} don${v > 1 ? 's' : ''}, ce qui change les moyennes. Pour garder l’historique, mets-le plutôt Inactif.</div>` : ''); })()}</div></div>` : `
-      <div class="line ${p.actif ? '' : 'off'}"><div class="grow"><div class="name">${esc(p.name)}</div><div class="muted">${['licence', 'paiement', 'chaussette'].filter(k => p[k]).map(k => ({ licence: 'licence', paiement: 'payé', chaussette: 'chaussettes' }[k])).join(', ') || 'rien de validé'}</div></div><button class="tgl ${p.actif ? 'on' : ''}" data-a="togActif" data-id="${p.id}" aria-pressed="${p.actif}">${p.actif ? 'Actif' : 'Inactif'}</button><button class="btn small ghost" data-a="editPlayer" data-id="${p.id}">Modifier</button></div>`; const az = (a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' });
+      <div class="line ${p.actif ? '' : 'off'}"><div class="grow" data-a="viewPlayer" data-id="${p.id}" style="cursor:pointer"><div class="name">${esc(p.name)} <span class="link">›</span></div><div class="muted">${['licence', 'paiement', 'chaussette'].filter(k => p[k]).map(k => ({ licence: 'licence', paiement: 'payé', chaussette: 'chaussettes' }[k])).join(', ') || 'rien de validé'}</div></div><button class="tgl ${p.actif ? 'on' : ''}" data-a="togActif" data-id="${p.id}" aria-pressed="${p.actif}">${p.actif ? 'Actif' : 'Inactif'}</button><button class="btn small ghost" data-a="editPlayer" data-id="${p.id}">Modifier</button></div>`; const az = (a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' });
       const act = S.players.filter(p => p.actif).sort(az), ina = S.players.filter(p => !p.actif).sort(az);
       return `<div class="group">Actifs (${act.length})</div><div class="card">${act.map(row).join('') || '<div class="empty">Aucun joueur actif.</div>'}</div>`
         + (ina.length ? `<div class="group" style="margin-top:18px">Inactifs (${ina.length})</div><div class="card">${ina.map(row).join('')}</div>` : ''); })()}
@@ -695,23 +733,35 @@ V.base = () => {
 };
 
 /* ----- feuille « Donner » ----- */
+const unitVal = p => (p && (p.apport || p.prix)) || 0;
+const sheetProds = () => S.products.filter(x => x.actif && x.type !== 'Autres' && unitVal(x) > 0)
+  .sort((a, b) => (b.apport || 0) - (a.apport || 0) || TYPES.indexOf(a.type) - TYPES.indexOf(b.type) || a.name.localeCompare(b.name, 'fr'));
+function sheetSum() {
+  const sh = U.sheet, m = num(sh.montant); let pv = 0, n = 0;
+  Object.entries(sh.qty || {}).forEach(([k, q]) => { q = Math.round(num(q)); const p = prod(k); if (p && q > 0) { pv += unitVal(p) * q; n += q; } });
+  return { m, pv, n, tot: m + pv };
+}
+function sheetLabel() {
+  const s = sheetSum(), parts = [];
+  if (s.m > 0) parts.push(eur0(s.m));
+  if (s.n) parts.push(s.n + ' produit' + (s.n > 1 ? 's' : '') + ' (' + eur0(s.pv) + ')');
+  return parts.length ? 'Valider ' + parts.join(' + ') : 'Valider';
+}
 function renderSheet() {
-  const sh = U.sheet, box = document.getElementById('sheet');
+  const sh = U.sheet, box = document.getElementById('sheet'), panel = document.getElementById('panel');
   box.classList.toggle('open', !!(sh || U.shot));
-  if (U.shot && !sh) { document.getElementById('panel').innerHTML = `<h3>Image prête</h3><p class="muted" style="margin-top:0">Appui long sur l’image, puis « Partager » et choisis WhatsApp (ou « Enregistrer l’image » pour l’envoyer depuis ta galerie).</p><div class="shot"><img src="${U.shot.url}" alt="Visuel à partager"></div><div class="btns" style="margin-top:12px"><button class="btn ghost wide" data-a="closeShot">Fermer</button></div>`; return; }
+  if (U.shot && !sh) { panel.innerHTML = `<h3>Image prête</h3><p class="muted" style="margin-top:0">Appui long sur l’image, puis « Partager » et choisis WhatsApp (ou « Enregistrer l’image » pour l’envoyer depuis ta galerie).</p><div class="shot"><img src="${U.shot.url}" alt="Visuel à partager"></div><div class="btns" style="margin-top:12px"><button class="btn ghost wide" data-a="closeShot">Fermer</button></div>`; return; }
   if (!sh) return;
-  const p = player(sh.playerId);
-  const prods = S.products.filter(x => x.actif && x.type !== 'Autres');
-  const sel = sh.pid ? prod(sh.pid) : null;
-  const val = sh.nature ? (sel ? (sel.apport || sel.prix) * sh.qty : 0) : num(sh.montant);
-  document.getElementById('panel').innerHTML = `
+  const p = player(sh.playerId), top = panel.scrollTop;
+  panel.innerHTML = `
   <h3>${esc(p.name)} donne…</h3>
-  <div class="seg"><button class="${sh.nature ? '' : 'on'}" data-a="shMode" data-v="0">De l’argent</button><button class="${sh.nature ? 'on' : ''}" data-a="shMode" data-v="1">Un produit</button></div>
-  ${sh.nature ? `<div class="plist">${prods.sort((a, b) => (b.apport || 0) - (a.apport || 0)).map(x => `<button class="${sh.pid === x.id ? 'on' : ''}" data-a="shProd" data-id="${x.id}"><span>${esc(x.name)}</span><span class="muted">${eur0(x.apport || x.prix)}</span></button>`).join('')}</div>
-    ${sel ? `<div class="line"><div class="grow name">Quantité</div>${stepper('sheet.qty', sh.qty)}</div>` : ''}`
-    : `<div class="quick">${[2, 5, 10, 20].map(n => `<button class="${num(sh.montant) === n ? 'on' : ''}" data-a="shAmt" data-v="${n}">${n} €</button>`).join('')}</div>
-    <label class="f">Autre montant<input inputmode="decimal" data-f="sheet.montant" value="${esc(sh.montant)}" placeholder="0,00"></label>`}
-  <div class="btns" style="margin-top:10px"><button class="btn red wide" data-a="shSave">${val > 0 ? 'Valider ' + eur0(val) : 'Valider'}</button><button class="btn ghost wide" data-a="closeSheet">Annuler</button></div>`;
+  <div class="sgroup">💶 De l’argent</div>
+  <div class="quick">${[2, 5, 10, 20].map(n => `<button class="${num(sh.montant) === n ? 'on' : ''}" data-a="shAmt" data-v="${n}">${n} €</button>`).join('')}</div>
+  <label class="f">Autre montant (€)<input inputmode="decimal" data-f="sheet.montant" value="${esc(sh.montant)}" placeholder="0,00"></label>
+  <div class="sgroup">🎁 Des produits ramenés <span class="muted" style="font:500 .8rem Barlow,sans-serif">(plusieurs possibles)</span></div>
+  ${sheetProds().map(x => { const q = sh.qty[x.id] || 0; return `<div class="line"><div class="grow"><div class="name">${iconsOn() ? icone(x) + ' ' : ''}${esc(x.name)}</div><div class="muted">${eur0(unitVal(x))} l’unité</div></div>${stepper('sheet.qty.' + x.id, q)}</div>`; }).join('')}
+  <div class="sheetfoot"><button class="btn red wide" data-a="shSave" id="shSaveBtn">${sheetLabel()}</button><button class="btn ghost wide" data-a="closeSheet">Annuler</button></div>`;
+  panel.scrollTop = top;
 }
 
 function render() {
@@ -721,21 +771,37 @@ function render() {
 }
 
 /* ================= Scan de ticket ================= */
+function fixOcr(L) {
+  // corrige les erreurs de lecture les plus fréquentes sur une photo de ticket
+  return L.replace(/(\d)\s+([,.])\s*(\d{2})(?!\d)/g, '$1$2$3').replace(/(\d)([,.])\s+(\d{2})(?!\d)/g, '$1$2$3')
+    .replace(/(\d[,.]?)O/g, '$10').replace(/(\d[,.]?)O/g, '$10').replace(/(^|\s)O(?=[,.]\d\d)/g, '$10')
+    .replace(/([A-Z])0(?=[A-Z])/g, '$1O').replace(/([A-Z])1(?=[A-Z])/g, '$1I')
+    .replace(/¢/g, 'C').replace(/T[O0]T[A4]L/g, 'TOTAL').replace(/\bA\s?PAYER\b/g, 'A PAYER').replace(/[‘’`´]/g, "'").replace(/\s{2,}/g, ' ').trim();
+}
+const RAYONS = /^(BIERES?|BOISSONS?|CHIPS|TRAITEUR|EPICERIE|CREMERIE|LIQUIDES?|APERITIFS?|BISCUITERIE|CONFISERIE|BOULANGERIE|PATISSERIE|SURGELES?|FRUITS?|LEGUMES?|BOUCHERIE|CHARCUTERIE|FROMAGERIE|DROGUERIE|HYGIENE|ENTRETIEN|PARFUMERIE|BAZAR|VINS?|ALCOOLS?|SPIRITUEUX|EAUX?|JUS|SODAS?|PAINS?|VIENNOISERIES?)\b/;
+const isRayon = L => !/\d/.test(L) && L.split(' ').length <= 4 && RAYONS.test(L.replace(/^[^A-Z]+/, ''));
 function parseTicket(text) {
   // Lecture pensée pour les tickets Super U (Magasins U), avec repli générique pour les autres enseignes.
-  const lines = String(text).split(/\r?\n/).map(norm).filter(Boolean);
-  const PRICE = /(-?\d{1,4}[.,]\d{2})\s*(?:€|EUR)?(?:\s+(?:\d{1,2}|[A-Z]\d?|\*))?\s*$/;
-  const MULT = /^(\d{1,3})\s*[X*×]\s*(\d{1,4}[.,]\d{2})\s*(?:€|EUR)?/;
+  const lines = String(text).split(/\r?\n/).map(l => fixOcr(norm(l))).filter(Boolean);
+  // prix en fin de ligne, suivi éventuellement de € et du code TVA (11, A, 13… souvent mal lu : IL, LI, |1)
+  const PRICE = /(-?\d{1,4}[.,]\d{2})(?:\s*(?:€|EUR)|\s+[EC])?(?:\s+(?:[A-Z0-9|!]{1,3}|\*)|\s*\d{1,2})?\s*$/;
+  const ONLYPRICE = /^-?\d{1,4}[.,]\d{2}(?:\s*(?:€|EUR)|\s+[EC])?(?:\s+(?:[A-Z0-9|!]{1,3}|\*))?$/;
+  const MULT = /^(\d{1,3})\s*[X*×K%]\s*(\d{1,4}[.,]\d{2})\s*(?:€|EUR)?/;
   const SKIP = /TVA|CARTE|\bCB\b|VISA|MASTERCARD|RENDU|ESPECES|MONTANT|MERCI|FIDELIT|CAGNOT|SIRET|TEL\b|TELEPHONE|NB ARTICLE|NOMBRE DE LIGNES|TICKET|MAGASIN|HORAIRE|PAIEMENT|SANS CONTACT|AUTORIS|ELIGIBLES|SOLDE|VIGNETTE|\*{3,}/;
-  const items = [], reductions = [];
-  let ticketTotal = null, paid = null, date = null, dateAny = null, pendingName = null, phase = 'items';
+  const items = [], reductions = [], cols = { names: [], prices: [] };
+  let ticketTotal = null, paid = null, date = null, dateAny = null, pendingName = null, phase = 'items', inReduc = false;
   for (const L of lines) {
-    const dt = L.match(/\b(\d{2})\/(\d{2})\/(\d{2}|\d{4})\s+\d{2}:\d{2}/);
-    if (dt && !date) date = (dt[3].length === 2 ? '20' + dt[3] : dt[3]) + '-' + dt[2] + '-' + dt[1];
+    const dt = L.match(/\b(\d{2})[\/.-](\d{2})[\/.-](\d{2}|\d{4})\s+\d{2}[:H.]\d{2}/);
+    if (dt && !date && +dt[2] <= 12 && +dt[1] <= 31 && +dt[1] > 0) date = (dt[3].length === 2 ? '20' + dt[3] : dt[3]) + '-' + dt[2] + '-' + dt[1];
     const da = L.match(/\b(\d{2})[\/.-](\d{2})[\/.-](20\d{2})\b/);
-    if (da && !dateAny && +da[2] <= 12) dateAny = da[3] + '-' + da[2] + '-' + da[1];
+    if (da && !dateAny && +da[2] <= 12 && +da[1] <= 31 && +da[1] > 0) dateAny = da[3] + '-' + da[2] + '-' + da[1];
     const pm = L.match(PRICE), price = pm ? num(pm[1]) : null;
-    if (/RESTE A PAYER|NET A PAYER|MONTANT A PAYER/.test(L)) { if (pm) paid = price; phase = 'after'; continue; }
+    if (/RESTE A PAYER|NET A PAYER|MONTANT A PAYER/.test(L)) { if (pm) paid = price; phase = 'after'; inReduc = false; continue; }
+    if (/TOTAL.{0,4}(REDUC|REMISE)/.test(L)) { inReduc = false; phase = 'after'; continue; }
+    if (/REDUCTIONS?|REMISES? IMMEDIATE/.test(L) && !pm) { inReduc = true; continue; } // en-tête « VOS REDUCTIONS IMMEDIATES »
+    if (inReduc && pm) { // dans ce bloc, toute ligne avec un prix est une réduction (même si le « - » est mal lu)
+      reductions.push({ text: L.slice(0, pm.index).replace(MULT, '').trim(), amount: Math.abs(price) }); continue;
+    }
     if (/\bTOTAL\b/.test(L) && !/SOUS.?TOTAL|TVA|REDUC|REMISE/.test(L)) { if (pm && ticketTotal == null) ticketTotal = price; phase = 'after'; continue; }
     if (/SOUS.?TOTAL|TOTAL (TVA|REDUC|REMISE)/.test(L)) { phase = 'after'; continue; }
     if (pm && price < 0) { // réduction : « 2 x 3.75€ LOT 2 BIERE HEINEKEN X12  -7,50 € »
@@ -749,14 +815,25 @@ function parseTicket(text) {
       const lineTot = tail ? num(tail[1]) : r2(q * unit);
       const prev = items[items.length - 1];
       if (pendingName) { items.push({ text: pendingName, price: lineTot, qty: q }); pendingName = null; }
-      else if (prev && prev.qty === 1 && Math.abs(prev.price - r2(q * unit)) < 0.03) prev.qty = q;
+      else if (prev && !prev.qtyLine) { prev.qty = q; prev.qtyLine = true; } // la ligne « 2 x 0,95 » suit toujours son article
+      if (cols.names.length) cols.names[cols.names.length - 1].qty = q;
       continue;
     }
     if (SKIP.test(L)) { pendingName = null; continue; }
-    if (!pm) { pendingName = /[A-Z]{3}/.test(L) ? L : null; continue; } // rayon (CHIPS, TRAITEUR…) ou nom sans prix
+    if (ONLYPRICE.test(L)) { cols.prices.push(price); continue; } // prix seul sur sa ligne (photo lue en colonnes)
+    if (!pm) { // rayon (CHIPS, TRAITEUR…) ou nom d'article sans prix
+      pendingName = /[A-Z]{3}/.test(L) && !isRayon(L) ? L : null;
+      if (pendingName && (/\d/.test(L) || matchProduct(L))) cols.names.push({ text: L, qty: 1 });
+      continue;
+    }
     const name = L.slice(0, pm.index).replace(/[€*]+\s*$/, '').trim();
     if (!/[A-Z]{2}/.test(name)) continue;
     items.push({ text: name, price, qty: 1 }); pendingName = null;
+  }
+  // Repli : l'OCR a lu les noms puis les prix en colonnes séparées → on les rapproche dans l'ordre
+  if (items.length < 2 && cols.prices.length >= 2 && cols.names.length >= 2) {
+    const n = Math.min(cols.names.length, cols.prices.length);
+    for (let i = 0; i < n; i++) items.push({ text: cols.names[i].text, price: cols.prices[i], qty: cols.names[i].qty, colonnes: true });
   }
   // chaque réduction est retirée de l'article correspondant (sinon du dernier)
   reductions.forEach(r => {
@@ -766,18 +843,33 @@ function parseTicket(text) {
   });
   return { items, ticketTotal, paid, date: date || dateAny };
 }
+function lev(a, b) {
+  if (a === b) return 0; const m = a.length, n = b.length; if (!m || !n) return m || n;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) { const cur = [i]; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; }
+  return prev[n];
+}
 function matchProduct(name) {
   let best = null, pos = 1e9, len = 0;
   S.products.forEach(p => (p.alias || []).forEach(a => {
-    const A = norm(a); if (!A) return;
+    const A = norm(a); if (A.length < 3) return;
     const i = name.indexOf(A);
     if (i >= 0 && (i < pos || (i === pos && A.length > len))) { best = p; pos = i; len = A.length; }
   }));
-  return best;
+  if (best) return best;
+  // tolérance aux fautes de lecture d'une photo (HEINEKFN, CRAQUANTFS…)
+  const words = name.split(/[^A-Z0-9%]+/).filter(w => w.length >= 4);
+  let fb = null, fs = 0;
+  S.products.forEach(p => (p.alias || []).forEach(a => {
+    const aw = norm(a).split(/[^A-Z0-9%]+/).filter(w => w.length >= 5); if (!aw.length) return;
+    const ok = aw.every(x => { const tol = x.length >= 8 ? 2 : 1; return words.some(w => lev(w, x) <= tol || (w.length > x.length && lev(w.slice(0, x.length), x) <= tol)); });
+    const sc = aw.join('').length; if (ok && sc > fs) { fb = p; fs = sc; }
+  }));
+  return fb;
 }
 function unitsFor(name, p, qty) {
   // pack détecté sur le ticket : 12X25CL, 6X1,75L, X12…
-  const pk = name.match(/\b(\d{1,2})\s*X\s*\d{1,3}(?:[.,]\d+)?\s*(?:CL|L|ML)\b/) || name.match(/\bX\s*(\d{1,2})\b/);
+  const pk = name.match(/\b(\d{1,2})\s*[X×]\s*\d{1,3}(?:[.,]\s?\d+)?\s*(?:C[LI1]|L|ML)\b/) || name.match(/\bX\s*(\d{1,2})\b/);
   return qty * (pk ? +pk[1] : (p.lot || 1));
 }
 function applyTicket(res) {
@@ -793,7 +885,7 @@ function applyTicket(res) {
   U.draft = d;
   const ok = res.items.length - d.unknown.length;
   const reste = d.ticketTotal != null ? r2(d.ticketTotal - total) : 0;
-  U.scan = !res.items.length ? 'Aucun article lu. Réessaie avec une photo plus nette, bien à plat, ou saisis à la main.'
+  U.scan = !res.items.length ? 'Aucun article reconnu. Ouvre « Texte lu sur le ticket » ci-dessous : s’il est illisible, reprends la photo à plat, de près et bien éclairée ; sinon copie-le et envoie-le à Claude pour régler la lecture.'
     : ok + ' article' + (ok > 1 ? 's' : '') + ' reconnu' + (ok > 1 ? 's' : '') + (d.unknown.length ? ', ' + d.unknown.length + ' à vérifier' : '') + '. '
       + (d.ticketTotal != null ? (Math.abs(reste) < 0.01 ? 'Le total correspond au ticket (' + eur(d.ticketTotal) + ').' : 'Ticket : ' + eur(d.ticketTotal) + ', dont ' + eur(reste) + ' hors buvette.') : '');
 }
@@ -813,28 +905,80 @@ async function pdfText(file) {
   }
   return out.join('\n');
 }
-function shrink(file) {
+function prepImage(file, max, binarize) {
+  // photo → niveaux de gris, contraste étiré ; pour Tesseract, noir et blanc adaptatif (ombres, éclairage inégal)
   return new Promise((res, rej) => {
     const img = new Image(), url = URL.createObjectURL(file);
-    img.onload = () => { const k = Math.min(1, 1800 / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = img.width * k; c.height = img.height * k; const x = c.getContext('2d'); x.filter = 'grayscale(1) contrast(1.3)'; x.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', 0.85)); };
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height), Math.sqrt(12e6 / (img.width * img.height))), W = Math.max(1, Math.round(img.width * k)), H = Math.max(1, Math.round(img.height * k));
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, W, H); x.drawImage(img, 0, 0, W, H); URL.revokeObjectURL(url);
+      const d = x.getImageData(0, 0, W, H), p = d.data, g = new Uint8ClampedArray(W * H), hist = new Uint32Array(256);
+      for (let i = 0, j = 0; i < p.length; i += 4, j++) { const v = (p[i] * 0.299 + p[i + 1] * 0.587 + p[i + 2] * 0.114) | 0; g[j] = v; hist[v]++; }
+      let lo = 0, hi = 255, acc = 0; const cut = g.length * 0.02;
+      for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc > cut) { lo = v; break; } }
+      acc = 0; for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc > cut) { hi = v; break; } }
+      const span = Math.max(1, hi - lo);
+      for (let j = 0; j < g.length; j++) g[j] = Math.max(0, Math.min(255, (g[j] - lo) * 255 / span));
+      if (binarize) { // seuillage adaptatif de Bradley
+        const I = new Float64Array((W + 1) * (H + 1)), s = Math.max(15, Math.round(W / 14) | 1), h = s >> 1, t = 0.13;
+        for (let y = 1; y <= H; y++) { let row = 0; for (let xx = 1; xx <= W; xx++) { row += g[(y - 1) * W + xx - 1]; I[y * (W + 1) + xx] = I[(y - 1) * (W + 1) + xx] + row; } }
+        const o = new Uint8ClampedArray(g.length);
+        for (let y = 0; y < H; y++) { const y1 = Math.max(0, y - h), y2 = Math.min(H, y + h + 1); for (let xx = 0; xx < W; xx++) {
+          const x1 = Math.max(0, xx - h), x2 = Math.min(W, xx + h + 1), n = (x2 - x1) * (y2 - y1);
+          const sum = I[y2 * (W + 1) + x2] - I[y1 * (W + 1) + x2] - I[y2 * (W + 1) + x1] + I[y1 * (W + 1) + x1];
+          o[y * W + xx] = g[y * W + xx] * n < sum * (1 - t) ? 0 : 255; } }
+        g.set(o);
+      }
+      for (let i = 0, j = 0; i < p.length; i += 4, j++) { p[i] = p[i + 1] = p[i + 2] = g[j]; p[i + 3] = 255; }
+      x.putImageData(d, 0, 0);
+      res(binarize ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.9));
+    };
     img.onerror = () => rej(new Error('Image illisible')); img.src = url;
   });
 }
-async function imageText(file) {
-  const data = await shrink(file);
-  if (online()) return await backend.ocr(data.split(',')[1], 'image/jpeg');
+function scanMsg(t) { U.scan = t; const el = document.getElementById('scanmsg'); if (el) el.textContent = t; }
+async function tesseractText(dataUrl, step) {
   await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
-  const r = await Tesseract.recognize(data, 'fra', { logger: m => { if (m.status === 'recognizing text') { U.scan = 'Lecture du ticket… ' + Math.round(m.progress * 100) + ' %'; const el = document.querySelector('#app p.muted'); if (el) el.textContent = U.scan; } } });
-  return r.data.text;
+  const w = await Tesseract.createWorker('fra', 1, { logger: m => { if (m.status === 'recognizing text') scanMsg('Lecture du ticket' + step + '… ' + Math.round(m.progress * 100) + ' %'); } });
+  try { await w.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' }); return (await w.recognize(dataUrl)).data.text; }
+  finally { await w.terminate(); }
+}
+function scoreTicket(r) {
+  let m = 0, sum = 0; r.items.forEach(it => { if (matchProduct(it.text)) m++; sum += it.price; });
+  const tot = r.paid ?? r.ticketTotal, ecart = tot != null && r.items.length ? Math.abs(sum - tot) : null;
+  return m * 3 + r.items.length + (tot != null ? 2 : 0) + (ecart == null ? 0 : ecart < 0.05 ? 6 : -Math.min(4, ecart / 2));
+}
+async function imageText(file) {
+  // 1) OCR Google (rapide, via le script) ; 2) si la lecture est incomplète, OCR Tesseract sur l'image nettoyée ; on garde la meilleure
+  const tries = []; let err = null;
+  if (online()) {
+    try {
+      scanMsg('Lecture du ticket (1/2)…');
+      const t = await backend.ocr((await prepImage(file, 4000, false)).split(',')[1], 'image/jpeg');
+      const r = parseTicket(t); tries.push({ t, r, sc: scoreTicket(r) });
+      const tot = r.paid ?? r.ticketTotal, sum = r.items.reduce((a, it) => a + it.price, 0);
+      if (tot != null && r.items.length && Math.abs(sum - tot) < 0.05) return tries[0];
+    } catch (e) { err = e; }
+  }
+  try {
+    const t = await tesseractText(await prepImage(file, 4000, true), online() ? ' (2/2)' : '');
+    const r = parseTicket(t); tries.push({ t, r, sc: scoreTicket(r) });
+  } catch (e) { if (!tries.length) throw (err || e); }
+  return tries.sort((a, b) => b.sc - a.sc)[0];
 }
 async function scan(file) {
-  U.scan = 'Lecture du ticket…'; render();
+  U.scan = 'Lecture du ticket…'; U.scanText = ''; render();
   try {
     const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
-    const text = isPdf ? await pdfText(file) : await imageText(file);
-    if (isPdf && text.replace(/\s/g, '').length < 20) { U.scan = 'Ce PDF ne contient que des images. Prends plutôt une photo du ticket.'; render(); return; }
-    applyTicket(parseTicket(text));
-  } catch (e) { U.scan = 'Lecture impossible (' + (e.message || e) + '). Saisis les courses à la main.'; }
+    let best;
+    if (isPdf) {
+      const t = await pdfText(file);
+      if (t.replace(/\s/g, '').length < 20) { U.scan = 'Ce PDF ne contient que des images. Prends plutôt une photo du ticket.'; render(); return; }
+      best = { t, r: parseTicket(t) };
+    } else best = await imageText(file);
+    U.scanText = best.t; applyTicket(best.r);
+  } catch (e) { U.scan = 'Lecture impossible (' + niceErr(e) + '). Saisis les courses à la main.'; }
   render();
 }
 
@@ -971,28 +1115,24 @@ const A = {
     commit();
   },
   delApero: d => { S.aperos = S.aperos.filter(a => a.id !== d.id); S.versements = S.versements.filter(v => v.apId !== d.id); U.apId = null; go('home'); commit('Apéro supprimé'); },
-  give: d => { U.sheet = { playerId: d.id, apId: screen === 'apero' ? U.apId : null, nature: false, montant: '', pid: '', qty: 1 }; renderSheet(); },
+  give: d => { const c = currentApero(); U.sheet = { playerId: d.id, apId: screen === 'apero' ? U.apId : (c && c.participants.includes(d.id) ? c.id : null), montant: '', qty: {} }; const pn = document.getElementById('panel'); if (pn) pn.scrollTop = 0; renderSheet(); },
   closeSheet: () => { U.sheet = null; U.shot = null; renderSheet(); },
-  shMode: d => { U.sheet.nature = d.v === '1'; renderSheet(); },
-  shAmt: d => { U.sheet.montant = d.v; renderSheet(); },
-  shProd: d => { U.sheet.pid = d.id; renderSheet(); },
+  shAmt: d => { U.sheet.montant = num(U.sheet.montant) === num(d.v) ? '' : d.v; renderSheet(); },
   shSave: () => {
-    const sh = U.sheet, ap = S.aperos.find(x => x.id === sh.apId);
-    const dt = ap ? ap.dt : sessionDate() + 'T20:00';
-    if (sh.nature) {
-      const p = prod(sh.pid); if (!p) return toast('Choisis le produit apporté');
-      const qty = Math.max(1, Math.round(num(sh.qty)));
-      S.versements.push({ id: uid(), dt, apId: sh.apId, playerId: sh.playerId, nature: true, pid: p.id, qty, montant: r2((p.apport || p.prix) * qty) });
-    } else {
-      const m = num(sh.montant); if (m <= 0) return toast('Choisis un montant');
-      S.versements.push({ id: uid(), dt, apId: sh.apId, playerId: sh.playerId, nature: false, montant: r2(m) });
-    }
-    U.sheet = null; commit('Don enregistré');
+    const sh = U.sheet, ap = S.aperos.find(x => x.id === sh.apId), s = sheetSum();
+    if (s.m <= 0 && !s.n) return toast('Choisis un montant ou des produits');
+    const dt = ap ? ap.dt : sessionDate() + 'T20:00', base = { dt, apId: ap ? ap.id : null, playerId: sh.playerId };
+    if (s.m > 0) S.versements.push({ id: uid(), ...base, nature: false, montant: r2(s.m) });
+    Object.entries(sh.qty).forEach(([k, q]) => { q = Math.round(num(q)); const p = prod(k); if (p && q > 0) S.versements.push({ id: uid(), ...base, nature: true, pid: p.id, qty: q, montant: r2(unitVal(p) * q) }); });
+    const msg = sheetLabel().replace(/^Valider/, 'Don enregistré :'); U.sheet = null; commit(msg);
   },
+  viewPlayer: d => { if (screen !== 'joueur') U.pBack = screen; U.pView = d.id; U.sheet = null; go('joueur'); },
+  pOrder: () => { U.pRecent = !U.pRecent; render(); },
   delV: d => { S.versements = S.versements.filter(v => v.id !== d.id); commit('Don supprimé'); },
   stp: d => { const k = d.p.split('.'); let o = U; while (k.length > 1) o = o[k.shift()]; const cur = num(o[k[0]]); o[k[0]] = Math.max(0, cur + +d.d); d.p.startsWith('sheet') ? renderSheet() : render(); },
-  openCourses: () => { if (!U.draft) U.draft = newDraft(); U.scan = ''; go('courses'); },
-  resetDraft: () => { U.draft = newDraft(); U.scan = ''; render(); },
+  openCourses: () => { if (!U.draft) U.draft = newDraft(); U.scan = ''; U.scanText = ''; go('courses'); },
+  resetDraft: () => { U.draft = newDraft(); U.scan = ''; U.scanText = ''; render(); },
+  copyScan: () => { const t = U.scanText || ''; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Texte copié'), () => { const a = document.querySelector('.ocrtext'); if (a) { a.focus(); a.select(); } toast('Sélectionne et copie le texte'); }); },
   saveCourses: () => {
     const d = U.draft;
     const lignes = Object.entries(d.qty).filter(([, q]) => q > 0).map(([pid, qty]) => ({ pid, qty: Math.round(qty) }));
@@ -1118,7 +1258,8 @@ document.addEventListener('input', e => {
   if (t.dataset.f) {
     const v = t.type === 'checkbox' ? t.checked : t.value;
     setPath(t.dataset.f, /^(draft\.qty|inv|sheet\.qty|invEdit\.counts|achatEdit\.qty)\./.test(t.dataset.f) ? num(v) : v);
-    if (t.dataset.f === 'sheet.montant') { const q = document.querySelectorAll('.quick button'); q.forEach(x => x.classList.toggle('on', num(x.dataset.v) === num(v))); const s = document.querySelector('[data-a=shSave]'); if (s) s.textContent = num(v) > 0 ? 'Valider ' + eur0(num(v)) : 'Valider'; }
+    if (t.dataset.f === 'sheet.montant') document.querySelectorAll('.quick button').forEach(x => x.classList.toggle('on', num(x.dataset.v) === num(v)));
+    if (U.sheet && t.dataset.f.startsWith('sheet.')) { const b = document.getElementById('shSaveBtn'); if (b) b.textContent = sheetLabel(); }
     if (t.dataset.f === 'draft.total') { const b = document.querySelector('.total b'); if (b) b.textContent = eur(num(v)); }
   }
 });
@@ -1129,6 +1270,7 @@ document.addEventListener('change', e => {
   if (t.dataset.unk != null) { const u = U.draft.unknown[+t.dataset.unk]; const was = u.pid; u.pid = t.value; const tot = num(U.draft.total) + (u.pid && !was ? u.price : !u.pid && was ? -u.price : 0); U.draft.total = String(r2(tot)).replace('.', ','); render(); }
   if (t.dataset.a === 'scanFile' && t.files[0]) { const f = t.files[0]; t.value = ''; scan(f); }
   if (/^(draft\.qty|inv|invEdit\.counts|achatEdit\.qty)\./.test(t.dataset.f || '')) render();
+  if (/^sheet\.qty\./.test(t.dataset.f || '')) renderSheet();
 });
 
 if (HOSTED && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
